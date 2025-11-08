@@ -132,3 +132,19 @@
   border-color: #4b5563; /* hover:border-gray-600 */
   background: #1f2937; /* hover:bg-gray-800 */
 }
+
+/* One-off pop animation for interactive elements */
+@keyframes popOnce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.pop-once { animation: popOnce 0.22s ease; }
+
+/* Flash ring animation for input wrapper when cleared */
+@keyframes ringFlashAnim {
+  0% { box-shadow: 0 0 0 0 rgba(147,51,234,0.0); }
+  40% { box-shadow: 0 0 0 4px rgba(147,51,234,0.35); }
+  100% { box-shadow: 0 0 0 0 rgba(147,51,234,0.0); }
+}
+.ring-flash { animation: ringFlashAnim 0.42s ease; border-radius: 0.75rem; }

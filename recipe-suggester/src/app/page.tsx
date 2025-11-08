@@ -21,6 +21,8 @@ interface ChatMessage {
 
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const inputWrapRef = useRef<HTMLDivElement>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,6 +40,25 @@ export default function Home() {
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  const clearIngredients = () => {
+    setIngredients("");
+    setError("");
+    // Animate input wrapper subtly when cleared
+    if (inputWrapRef.current) {
+      inputWrapRef.current.classList.add("ring-flash", "pop-once");
+      setTimeout(() => {
+        inputWrapRef.current && inputWrapRef.current.classList.remove("ring-flash", "pop-once");
+      }, 420);
+    }
+    if (inputRef.current) {
+      inputRef.current.classList.add("pop-once");
+      setTimeout(() => {
+        inputRef.current && inputRef.current.classList.remove("pop-once");
+      }, 220);
+      inputRef.current.focus();
+    }
+  };
 
   const handleGetRecipes = async () => {
     if (!ingredients.trim()) {
@@ -111,7 +132,11 @@ export default function Home() {
                 <div className="text-3xl">🍳</div>
                 <Link
                   href="/"
-                  className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    clearIngredients();
+                  }}
+                  className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity active:scale-95 duration-150"
                 >
                   Zenny
                 </Link>
@@ -178,14 +203,29 @@ export default function Home() {
           <div className="max-w-3xl mx-auto mb-12">
             <div className="bg-gray-900/50 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-800">
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="text"
-                  value={ingredients}
-                  onChange={(e) => setIngredients(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleGetRecipes()}
-                  placeholder="e.g., chicken, rice, tomatoes, garlic..."
-                  className="flex-grow px-6 py-4 bg-gray-800/80 border-2 border-gray-700 text-white placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg"
-                />
+                <div ref={inputWrapRef} className="relative flex-grow rounded-xl">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={ingredients}
+                    onChange={(e) => setIngredients(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleGetRecipes()}
+                    placeholder="e.g., chicken, rice, tomatoes, garlic..."
+                    className="w-full pr-12 px-6 py-4 bg-gray-800/80 border-2 border-gray-700 text-white placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg transition"
+                  />
+                  {ingredients && (
+                    <button
+                      type="button"
+                      onClick={clearIngredients}
+                      aria-label="Clear input"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full p-1 transition-colors duration-150 group"
+                    >
+                      <svg className="w-5 h-5 transition-transform duration-200 group-hover:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
                 <button
                   onClick={handleGetRecipes}
                   disabled={loading}
