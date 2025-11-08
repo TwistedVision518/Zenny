@@ -1,0 +1,28 @@
+# Netlify configuration for deploying Next.js frontend.
+# Backend (Flask) should be hosted separately (e.g., Render, Railway, Fly.io, or a VPS).
+# Set NEXT_PUBLIC_API_URL in Netlify environment variables to point to that backend.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+  # Use Next.js runtime
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirect any /api/* calls optionally to external backend if you deploy Flask elsewhere.
+# Uncomment and replace BACKEND_URL once you have it live.
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://YOUR-BACKEND-HOST.com/:splat"
+#   status = 200
+#   force = true
+
+# Security headers example
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
