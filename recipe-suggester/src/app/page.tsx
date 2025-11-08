@@ -262,16 +262,24 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center space-x-3">
-                <div className="text-3xl">🍳</div>
                 <Link
                   href="/"
                   onClick={(e) => {
                     e.preventDefault();
                     clearIngredients();
                   }}
-                  className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition-opacity active:scale-95 duration-150"
+                  className="flex items-center space-x-3 group"
                 >
-                  Zenny
+                  <div className="relative w-10 h-10 rounded-full overflow-hidden shadow-lg ring-2 ring-purple-500/20 group-hover:ring-purple-500/60 transition-all group-active:scale-95">
+                    <img 
+                      src="/logodog.jpg?v=2" 
+                      alt="Zenny Logo" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent group-hover:opacity-80 transition-opacity">
+                    Zenny
+                  </span>
                 </Link>
               </div>
               <div className="flex items-center space-x-4">

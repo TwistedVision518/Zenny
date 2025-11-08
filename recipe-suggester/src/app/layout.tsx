@@ -5,8 +5,18 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Zenny - AI Recipe Assistant",
-  description: "Get personalized recipe suggestions based on ingredients you have at home.",
+  title: "Zenny - AI Recipe Suggester",
+  description: "Get personalized recipe suggestions based on ingredients you have",
+  icons: {
+    icon: [
+      { url: '/logodog.jpg?v=3', type: 'image/jpeg', sizes: '32x32' },
+      { url: '/logodog.jpg?v=3', type: 'image/jpeg', sizes: '16x16' }
+    ],
+    apple: [
+      { url: '/logodog.jpg?v=3', sizes: '180x180', type: 'image/jpeg' }
+    ],
+    shortcut: '/logodog.jpg?v=3',
+  },
 };
 
 export default function RootLayout({
