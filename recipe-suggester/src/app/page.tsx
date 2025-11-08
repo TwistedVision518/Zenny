@@ -22,6 +22,7 @@ interface ChatMessage {
 
 export default function Home() {
   const [ingredients, setIngredients] = useState("");
+  const [searchMode, setSearchMode] = useState<"ingredients" | "dish">("ingredients");
   const inputRef = useRef<HTMLInputElement>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -86,17 +87,22 @@ export default function Home() {
 
   const handleGetRecipes = async () => {
     if (!ingredients.trim()) {
-      setError("Please enter some ingredients");
+      setError(searchMode === "ingredients" ? "Please enter some ingredients" : "Please enter a dish name");
       return;
     }
     setLoading(true);
     setError("");
     setRecipes([]);
     try {
-  const response = await fetch(`${API_BASE}/api/recipes`, {
+      const endpoint = searchMode === "ingredients" ? `${API_BASE}/api/recipes` : `${API_BASE}/api/recipes/by-dish`;
+      const body = searchMode === "ingredients" 
+        ? { ingredients: ingredients.split(",").map((i) => i.trim()) }
+        : { dish_name: ingredients.trim() };
+      
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: ingredients.split(",").map((i) => i.trim()) }),
+        body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error("Failed to get recipes");
       const data = await response.json();
@@ -336,6 +342,30 @@ export default function Home() {
 
           <div className="max-w-3xl mx-auto mb-12">
             <div className="bg-gray-900/50 backdrop-blur-xl rounded-2xl shadow-2xl p-6 border border-gray-800">
+              {/* Search Mode Toggle */}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <button
+                  onClick={() => { setSearchMode("ingredients"); setError(""); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    searchMode === "ingredients"
+                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  🥘 By Ingredients
+                </button>
+                <button
+                  onClick={() => { setSearchMode("dish"); setError(""); }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    searchMode === "dish"
+                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  🍽️ By Dish Name
+                </button>
+              </div>
+              
               <div className="flex flex-col sm:flex-row gap-3">
                 <div ref={inputWrapRef} className="relative flex-grow rounded-xl">
                   <input
@@ -344,7 +374,11 @@ export default function Home() {
                     value={ingredients}
                     onChange={(e) => setIngredients(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleGetRecipes()}
-                    placeholder="e.g., chicken, rice, tomatoes, garlic..."
+                    placeholder={
+                      searchMode === "ingredients"
+                        ? "e.g., chicken, rice, tomatoes, garlic..."
+                        : "e.g., Chicken Biryani, Pasta Carbonara..."
+                    }
                     className="w-full pr-12 px-6 py-4 bg-gray-800/80 border-2 border-gray-700 text-white placeholder-gray-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-lg transition"
                   />
                   {ingredients && (
@@ -376,11 +410,17 @@ export default function Home() {
                   ) : (
                     <span className="flex items-center space-x-2">
                       <span>🔍</span>
-                      <span>Get Recipes</span>
+                      <span>{searchMode === "ingredients" ? "Get Recipes" : "Find Variations"}</span>
                     </span>
                   )}
                 </button>
               </div>
+              {/* Helper text */}
+              <p className="text-xs text-gray-500 mt-3 text-center">
+                {searchMode === "ingredients" 
+                  ? "💡 Separate multiple ingredients with commas" 
+                  : "💡 Enter a dish name to discover different variations and recipes"}
+              </p>
             </div>
           </div>
 

@@ -24,6 +24,73 @@ else:
     model = genai.GenerativeModel('gemini-2.0-flash')
     print("✅ Gemini client initialized successfully!")
 
+@app.route('/api/recipes/by-dish', methods=['POST'])
+def get_recipes_by_dish():
+    if not model:
+        return jsonify({"error": "Gemini API key not configured. Please add your API key to the .env file."}), 500
+    
+    data = request.get_json()
+    dish_name = data.get('dish_name', '').strip()
+    
+    if not dish_name:
+        return jsonify({"recipes": []})
+
+    try:
+        print(f"Received request for dish: {dish_name}")
+        
+        # Create a prompt for Gemini to find variations of the dish
+        prompt = f"""Given the dish name: "{dish_name}"
+
+Please provide 5 variations or similar recipes for this dish. For each recipe, provide the following information in valid JSON format:
+- name: recipe name (include variations like "Classic {dish_name}", "Spicy {dish_name}", etc.)
+- description: brief description highlighting what makes this variation unique (1-2 sentences)
+- ingredients: array of main ingredients needed
+- steps: array of 3-5 quick preparation steps
+- cooking_time: estimated cooking time
+
+Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
+
+        print("Calling Gemini API for dish search...")
+        response = model.generate_content(prompt)
+        
+        print("Received response from Gemini")
+        recipes_text = response.text
+        
+        # Clean up the response (remove markdown code blocks if present)
+        if '```json' in recipes_text:
+            recipes_text = recipes_text.split('```json')[1].split('```')[0].strip()
+        elif '```' in recipes_text:
+            recipes_text = recipes_text.split('```')[1].split('```')[0].strip()
+        
+        # Try to parse the JSON response
+        try:
+            recipes = json.loads(recipes_text)
+            # Normalize to list
+            if isinstance(recipes, dict):
+                possible_lists = [v for v in recipes.values() if isinstance(v, list)]
+                if possible_lists:
+                    recipes = possible_lists[0]
+                else:
+                    recipes = []
+            print(f"Successfully parsed {len(recipes)} recipe variations")
+            return jsonify({"recipes": recipes})
+        except json.JSONDecodeError as e:
+            print(f"JSON parsing error: {e}")
+            print(f"Raw response: {recipes_text[:500]}...")
+            return jsonify({"recipes": [{
+                "name": dish_name,
+                "description": "Unable to parse recipe variations. Please try again.",
+                "ingredients": [],
+                "steps": ["Try refreshing the page"],
+                "cooking_time": "N/A"
+            }], "error": "parse_error"})
+
+    except Exception as e:
+        print(f"ERROR in get_recipes_by_dish: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to generate recipes: {str(e)}"}), 500
+
 @app.route('/api/recipes', methods=['POST'])
 def get_recipes():
     if not model:
