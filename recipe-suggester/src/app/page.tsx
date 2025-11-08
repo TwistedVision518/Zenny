@@ -144,13 +144,24 @@ export default function Home() {
         const reader = streamResp.body.getReader();
         const decoder = new TextDecoder();
         let assistantContent = '';
-        const assistantMessage: ChatMessage = { role: 'assistant', content: '', createdAt: new Date().toISOString() };
-        setChatMessages((prev) => [...prev, assistantMessage]);
+        
+        // Add placeholder message first and track its index
+        const placeholderMessage: ChatMessage = { role: 'assistant', content: '', createdAt: new Date().toISOString() };
+        setChatMessages((prev) => [...prev, placeholderMessage]);
+        
+        // Track the message index for efficient updates
+        let messageIndex = -1;
+        setChatMessages((prev) => {
+          messageIndex = prev.length - 1;
+          return prev;
+        });
+        
         while (true) {
           const { done, value } = await reader.read();
-            if (done) break;
-          const chunkText = decoder.decode(value);
+          if (done) break;
+          const chunkText = decoder.decode(value, { stream: true });
           const events = chunkText.split('\n\n').filter(Boolean);
+          
           for (const ev of events) {
             if (!ev.startsWith('data:')) continue;
             const jsonStr = ev.replace(/^data:\s*/, '').trim();
@@ -158,14 +169,24 @@ export default function Home() {
               const payload = JSON.parse(jsonStr);
               if (payload.delta) {
                 assistantContent += payload.delta;
+                // Update message at the last index efficiently
                 setChatMessages((prev) => {
                   const copy = [...prev];
-                  const idx = copy.findIndex((m) => m === assistantMessage);
-                  if (idx !== -1) copy[idx] = { ...assistantMessage, content: assistantContent };
+                  const lastIdx = copy.length - 1;
+                  if (lastIdx >= 0 && copy[lastIdx].role === 'assistant') {
+                    copy[lastIdx] = { ...copy[lastIdx], content: assistantContent };
+                  }
                   return copy;
                 });
+              } else if (payload.done) {
+                // Streaming complete
+                break;
+              } else if (payload.error) {
+                throw new Error(payload.error);
               }
-            } catch { /* ignore parse errors */ }
+            } catch (parseErr) {
+              console.warn('Parse error in stream:', parseErr);
+            }
           }
         }
       } catch (streamErr) {
@@ -615,27 +636,39 @@ export default function Home() {
       {chatOpen && (
         <div className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-gray-950/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col border-l border-gray-800/70">
           {/* Header */}
-          <div className="px-5 py-4 flex items-center justify-between bg-gray-900/70 border-b border-gray-800 relative">
-            <div className="flex items-center space-x-3">
-              <div className="relative w-10 h-10">
-                <div className="absolute inset-0 rounded-xl p-[2px] bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600">
-                  <div className="w-full h-full rounded-xl flex items-center justify-center bg-gray-950">
-                    <span className="text-xl">🤖</span>
+          <div className="px-5 py-4 bg-gray-900/70 border-b border-gray-800 relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-3 flex-1 min-w-0">
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <div className="absolute inset-0 rounded-xl p-[2px] bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600">
+                    <div className="w-full h-full rounded-xl flex items-center justify-center bg-gray-950">
+                      <span className="text-xl">🤖</span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-semibold tracking-wide text-white truncate">Zenny Cooking Assistant</h3>
+                  <p className="text-[11px] text-gray-400">Ask for techniques, substitutions & timing</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-semibold tracking-wide text-white">Zenny Cooking Assistant</h3>
-                <p className="text-[11px] text-gray-400">Ask for techniques, substitutions & timing</p>
-              </div>
+              <button
+                onClick={() => setChatOpen(false)}
+                className="text-gray-400 hover:text-white hover:bg-gray-800/60 rounded-full p-2 transition-colors flex-shrink-0"
+                aria-label="Close chat"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="flex items-center space-x-2">
-              {chatContextRecipe && (
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gray-800/60 border border-gray-700 text-gray-200 mr-1">
-                  🍽️ {chatContextRecipe.name}
+            {/* Second row for context chip and clear button */}
+            <div className="flex items-center justify-between gap-2">
+              {chatContextRecipe ? (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gray-800/60 border border-gray-700 text-gray-200 max-w-[200px]">
+                  <span className="truncate">🍽️ {chatContextRecipe.name}</span>
                   <button
                     onClick={() => setChatContextRecipe(null)}
-                    className="ml-1.5 text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-full p-0.5"
+                    className="ml-1.5 text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-full p-0.5 flex-shrink-0"
                     title="Clear recipe context"
                     aria-label="Clear recipe context"
                   >
@@ -644,6 +677,8 @@ export default function Home() {
                     </svg>
                   </button>
                 </span>
+              ) : (
+                <div />
               )}
               <button
                 onClick={() => {
@@ -651,19 +686,11 @@ export default function Home() {
                   const confirmClear = window.confirm('Clear all chat messages? This cannot be undone.');
                   if (confirmClear) setChatMessages([]);
                 }}
-                className="px-2 py-1 text-[11px] font-medium rounded-lg bg-gray-800/50 border border-gray-700 text-gray-300 hover:text-white hover:border-gray-600 hover:bg-gray-800 transition-colors"
+                disabled={chatMessages.length === 0}
+                className="px-2.5 py-1 text-[11px] font-medium rounded-lg bg-gray-800/50 border border-gray-700 text-gray-300 hover:text-white hover:border-gray-600 hover:bg-gray-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Clear chat history"
               >
-                Clear
-              </button>
-              <button
-                onClick={() => setChatOpen(false)}
-                className="text-gray-400 hover:text-white hover:bg-gray-800/60 rounded-full p-2 transition-colors"
-                aria-label="Close chat"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                Clear Chat
               </button>
             </div>
           </div>

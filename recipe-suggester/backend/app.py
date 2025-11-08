@@ -273,9 +273,6 @@ Provide a helpful, concise, and friendly response. If discussing substitutions, 
         print(f"ERROR in chat: {str(e)}")
         return jsonify({"error": f"Failed to generate response: {str(e)}"}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
-
 @app.route('/api/chat/stream', methods=['POST'])
 def chat_stream():
     """Server-Sent Events streaming variant of chat endpoint for progressive rendering."""
@@ -315,17 +312,41 @@ Provide a helpful, concise, and friendly response. If discussing substitutions, 
 
     def event_stream():
         try:
+            print(f"[STREAM] Starting stream for message: {message[:50]}...")
+            chunk_count = 0
             # Gemini streaming interface
-            for chunk in model.generate_content(prompt, stream=True):
-                text = getattr(chunk, 'text', '')
-                if not text:
+            response_stream = model.generate_content(prompt, stream=True)
+            for chunk in response_stream:
+                try:
+                    # Access text from chunk parts
+                    if hasattr(chunk, 'text') and chunk.text:
+                        text = chunk.text
+                    elif hasattr(chunk, 'parts'):
+                        text = ''.join(part.text for part in chunk.parts if hasattr(part, 'text'))
+                    else:
+                        continue
+                    
+                    if not text:
+                        continue
+                    
+                    chunk_count += 1
+                    # Send incremental delta; client will append
+                    payload = {"delta": text}
+                    yield 'data: ' + json.dumps(payload) + '\n\n'
+                except Exception as chunk_err:
+                    print(f"[STREAM] Chunk error: {chunk_err}")
                     continue
-                # Send incremental delta; client will append
-                payload = {"delta": text}
-                yield 'data: ' + json.dumps(payload) + '\n\n'
+            
+            print(f"[STREAM] Stream complete. Sent {chunk_count} chunks.")
             # Completion marker
             yield 'data: ' + json.dumps({"done": True}) + '\n\n'
         except Exception as e:
+            print(f"[STREAM] ERROR: {str(e)}")
+            import traceback
+            traceback.print_exc()
             yield 'data: ' + json.dumps({"error": f"Streaming failed: {str(e)}"}) + '\n\n'
 
     return Response(event_stream(), mimetype='text/event-stream')
+
+if __name__ == '__main__':
+    app.run(debug=True)
