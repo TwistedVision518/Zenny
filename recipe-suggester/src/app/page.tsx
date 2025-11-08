@@ -34,6 +34,8 @@ export default function Home() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [videoLoading, setVideoLoading] = useState(false);
   const [askLoading, setAskLoading] = useState(false);
+  const [chatContextRecipe, setChatContextRecipe] = useState<Recipe | null>(null);
+  const [streaming, setStreaming] = useState(false);
   // Use env-based API base so we can deploy frontend separately (e.g., Netlify) and point to remote Flask backend.
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
@@ -91,18 +93,60 @@ export default function Home() {
     setChatInput("");
     setChatLoading(true);
     try {
-      const context: any = {};
-      if (selectedRecipe) context.recipe = selectedRecipe;
+  const context: any = {};
+  if (selectedRecipe) context.recipe = selectedRecipe;
+  else if (chatContextRecipe) context.recipe = chatContextRecipe;
       if (ingredients) context.user_ingredients = ingredients.split(",").map((i) => i.trim());
-
-  const response = await fetch(`${API_BASE}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage.content, context }),
-      });
-      const data = await response.json();
-  const assistantMessage: ChatMessage = { role: "assistant", content: data.response, createdAt: new Date().toISOString() };
-      setChatMessages((prev) => [...prev, assistantMessage]);
+      // Attempt streaming first
+      try {
+        setStreaming(true);
+        const streamResp = await fetch(`${API_BASE}/api/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMessage.content, context })
+        });
+        if (!streamResp.ok || !streamResp.body) throw new Error('Streaming response not available');
+        const reader = streamResp.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantContent = '';
+        const assistantMessage: ChatMessage = { role: 'assistant', content: '', createdAt: new Date().toISOString() };
+        setChatMessages((prev) => [...prev, assistantMessage]);
+        while (true) {
+          const { done, value } = await reader.read();
+            if (done) break;
+          const chunkText = decoder.decode(value);
+          const events = chunkText.split('\n\n').filter(Boolean);
+          for (const ev of events) {
+            if (!ev.startsWith('data:')) continue;
+            const jsonStr = ev.replace(/^data:\s*/, '').trim();
+            try {
+              const payload = JSON.parse(jsonStr);
+              if (payload.delta) {
+                assistantContent += payload.delta;
+                setChatMessages((prev) => {
+                  const copy = [...prev];
+                  const idx = copy.findIndex((m) => m === assistantMessage);
+                  if (idx !== -1) copy[idx] = { ...assistantMessage, content: assistantContent };
+                  return copy;
+                });
+              }
+            } catch { /* ignore parse errors */ }
+          }
+        }
+      } catch (streamErr) {
+        // Fallback to non-stream
+        setStreaming(false);
+        const response = await fetch(`${API_BASE}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMessage.content, context })
+        });
+        const data = await response.json();
+        const assistantMessage: ChatMessage = { role: 'assistant', content: data.response, createdAt: new Date().toISOString() };
+        setChatMessages((prev) => [...prev, assistantMessage]);
+      } finally {
+        setStreaming(false);
+      }
     } catch (e) {
       setChatMessages((prev) => [
         ...prev,
@@ -111,6 +155,33 @@ export default function Home() {
     } finally {
       setChatLoading(false);
     }
+  };
+
+  // Dynamic suggestion chips based on recipe complexity or available ingredients
+  const generateSuggestionChips = () => {
+    const base: string[] = [];
+    const r = chatContextRecipe || selectedRecipe;
+    if (r) {
+      const ingCount = r.ingredients ? r.ingredients.length : 0;
+      const stepCount = r.steps ? r.steps.length : 0;
+      if (ingCount >= 8) base.push('Simplify this recipe');
+      if (stepCount >= 5) base.push('Condense the instructions');
+      base.push('Suggest plating ideas');
+      base.push('Make it spicier');
+      base.push('Make it less spicy');
+      base.push('Offer healthy substitutions');
+      base.push('Give a quick side dish idea');
+      base.push('What can I prep ahead?');
+    } else {
+      base.push('Suggest a quick dinner');
+      base.push('Healthy meal idea');
+      base.push('High-protein suggestion');
+      base.push('Budget-friendly meal');
+    }
+    if (!r && ingredients.trim()) {
+      base.unshift('Use Current Ingredients');
+    }
+    return base;
   };
 
   return (
@@ -167,7 +238,14 @@ export default function Home() {
                 </a>
               </div>
               <button
-                onClick={() => setChatOpen(!chatOpen)}
+                onClick={() => {
+                  // If opening chat while a recipe is selected, carry it into chat context
+                  setChatOpen((prev) => {
+                    const next = !prev;
+                    if (next && selectedRecipe) setChatContextRecipe(selectedRecipe);
+                    return next;
+                  });
+                }}
                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-full hover:opacity-90 transition-all shadow-lg shadow-purple-500/30 hover:shadow-xl font-medium"
               >
                 <span>💬</span>
@@ -414,13 +492,18 @@ export default function Home() {
                         <button
                           onClick={() => {
                             setAskLoading(true);
+                            // Capture the current recipe for chat context, then close modal
+                            const current = selectedRecipe;
+                            if (current) setChatContextRecipe(current);
                             setChatOpen(true);
                             setSelectedRecipe(null);
                             if (chatMessages.length === 0) {
                               setChatMessages([
                                 {
                                   role: 'assistant',
-                                  content: `Hi! I can help you with this ${selectedRecipe.name} recipe. Feel free to ask me about substitutions, cooking techniques, or any questions you have!`,
+                                  content: current
+                                    ? `Hi! I can help you with this ${current.name} recipe. Ask about substitutions, techniques, timing, or tweaks!`
+                                    : 'Hi! I can help you with your recipe questions. Ask about substitutions, techniques, timing, or tweaks!',
                                   createdAt: new Date().toISOString()
                                 }
                               ]);
@@ -473,6 +556,21 @@ export default function Home() {
               </div>
             </div>
             <div className="flex items-center space-x-2">
+              {chatContextRecipe && (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-gray-800/60 border border-gray-700 text-gray-200 mr-1">
+                  🍽️ {chatContextRecipe.name}
+                  <button
+                    onClick={() => setChatContextRecipe(null)}
+                    className="ml-1.5 text-gray-400 hover:text-white hover:bg-gray-700/60 rounded-full p-0.5"
+                    title="Clear recipe context"
+                    aria-label="Clear recipe context"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              )}
               <button
                 onClick={() => {
                   if (chatMessages.length === 0) return;
@@ -502,21 +600,26 @@ export default function Home() {
               <div className="mt-4 space-y-5">
                 <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 backdrop-blur-sm">
                   <p className="text-sm text-gray-300 leading-relaxed">
-                    👋 Hi! I'm here to guide you through cooking. Provide ingredients for recipe help, or ask me how to tweak what you've got.
+                    👋 Hi! I'm here to guide you. Ask about substitutions, flavor tweaks, nutrition, plating, or side ideas.
                   </p>
+                  {chatContextRecipe && (
+                    <p className="text-xs text-gray-400 mt-2">Current recipe context: <span className="text-gray-300 font-medium">{chatContextRecipe.name}</span></p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {[
-                    'How do I substitute eggs?',
-                    'Make this spicier',
-                    'Suggest a side dish',
-                    'Simplify the steps',
-                    'Give me plating tips'
-                  ].map((suggestion) => (
+                  {generateSuggestionChips().map((suggestion) => (
                     <span
                       key={suggestion}
                       className="chat-suggestion-chip"
-                      onClick={() => setChatInput(suggestion)}
+                      onClick={() => {
+                        if (suggestion === 'Use Current Ingredients') {
+                          if (ingredients.trim()) {
+                            setChatInput(`Create a recipe using: ${ingredients}`);
+                          }
+                        } else {
+                          setChatInput(suggestion);
+                        }
+                      }}
                     >
                       {suggestion}
                     </span>
@@ -595,7 +698,15 @@ export default function Home() {
                 </div>
               ));
             })()}
-            {chatLoading && (
+            {streaming && chatLoading && (
+              <div className="flex justify-start chat-msg-animate">
+                <div className="bg-gray-800/70 border border-gray-700 rounded-2xl px-4 py-3 shadow-md flex items-center space-x-2 text-gray-300">
+                  <span className="h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-medium">Streaming...</span>
+                </div>
+              </div>
+            )}
+            {!streaming && chatLoading && (
               <div className="flex justify-start chat-msg-animate">
                 <div className="bg-gray-800/70 border border-gray-700 rounded-2xl px-4 py-3 shadow-md flex items-center space-x-2 text-gray-300">
                   <span className="h-4 w-4 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />

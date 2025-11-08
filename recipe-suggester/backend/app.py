@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import os
 import google.generativeai as genai
@@ -190,3 +190,57 @@ Provide a helpful, concise, and friendly response. If discussing substitutions, 
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+@app.route('/api/chat/stream', methods=['POST'])
+def chat_stream():
+    """Server-Sent Events streaming variant of chat endpoint for progressive rendering."""
+    if not model:
+        def _err_stream():
+            yield 'data: ' + json.dumps({"error": "Gemini API key not configured."}) + '\n\n'
+        return Response(_err_stream(), mimetype='text/event-stream')
+
+    data = request.get_json() or {}
+    message = data.get('message', '')
+    context = data.get('context', {})
+    if not message:
+        def _empty_stream():
+            yield 'data: ' + json.dumps({"error": "Message is required"}) + '\n\n'
+        return Response(_empty_stream(), mimetype='text/event-stream')
+
+    # Build context-aware prompt (reuse logic from /api/chat)
+    context_text = ""
+    try:
+        recipe = context.get('recipe')
+        if recipe:
+            context_text += f"\nCurrent recipe: {recipe.get('name','')}"
+            if recipe.get('ingredients'):
+                context_text += f"\nIngredients: {', '.join(recipe['ingredients'])}"
+        user_ings = context.get('user_ingredients')
+        if user_ings:
+            context_text += f"\nUser's available ingredients: {', '.join(user_ings)}"
+    except Exception:
+        pass
+
+    prompt = f"""You are a helpful cooking assistant. Help the user with their cooking questions.
+{context_text}
+
+User question: {message}
+
+Provide a helpful, concise, and friendly response. If discussing substitutions, be specific about quantities and how it might affect the dish."""
+
+    def event_stream():
+        try:
+            # Gemini streaming interface
+            for chunk in model.generate_content(prompt, stream=True):
+                text = getattr(chunk, 'text', '')
+                if not text:
+                    continue
+                # Send incremental delta; client will append
+                payload = {"delta": text}
+                yield 'data: ' + json.dumps(payload) + '\n\n'
+            # Completion marker
+            yield 'data: ' + json.dumps({"done": True}) + '\n\n'
+        except Exception as e:
+            yield 'data: ' + json.dumps({"error": f"Streaming failed: {str(e)}"}) + '\n\n'
+
+    return Response(event_stream(), mimetype='text/event-stream')

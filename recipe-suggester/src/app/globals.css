@@ -148,3 +148,29 @@
   100% { box-shadow: 0 0 0 0 rgba(147,51,234,0.0); }
 }
 .ring-flash { animation: ringFlashAnim 0.42s ease; border-radius: 0.75rem; }
+
+/* Respect reduced motion user preference */
+@media (prefers-reduced-motion: reduce) {
+  .animated-gradient-bg { animation: none !important; }
+  .orb { animation: none !important; }
+  .chat-msg-animate { animation: none !important; }
+}
+
+/* MOBILE PERFORMANCE OPTIMIZATIONS */
+@media (max-width: 640px) {
+  /* Reduce heavy blur & shadows for smoother scrolling */
+  .animated-gradient-bg { opacity: 0.08; }
+  .animated-orbs .orb { filter: blur(60px); opacity: 0.22; }
+  header, footer { backdrop-filter: none !important; }
+  .chat-scroll { scrollbar-width: none; }
+  .chat-scroll::-webkit-scrollbar { display: none; }
+  /* Avoid layout shift on hover mobile by disabling translate effects */
+  .group:hover { transform: none !important; }
+  /* Smooth scrolling behavior tweaks */
+  html, body { overscroll-behavior-y: contain; }
+}
+
+/* Prefer GPU accel for animated elements */
+.animated-gradient-bg,
+.orb,
+.chat-msg-animate { will-change: transform, opacity; }
