@@ -21,8 +21,24 @@ interface ChatMessage {
 }
 
 export default function Home() {
+  const cookingTaglines = [
+    "Tell us what ingredients you have, and we'll create delicious recipes just for you! ✨",
+    "Turn your pantry into a culinary adventure! 🍳",
+    "Your ingredients, our creativity - let's cook something amazing! 👨‍🍳",
+    "Fresh ideas from whatever's in your fridge! 🥗",
+    "Got ingredients? We've got recipes! Let's get cooking! 🔥",
+    "From your kitchen to your table - made simple! 🍽️",
+    "Discover delicious dishes hiding in your pantry! 🎯",
+    "Every ingredient tells a story - let's write yours! 📖",
+    "Cooking magic starts with what you already have! ✨",
+    "Transform everyday ingredients into extraordinary meals! 🌟",
+    "Your kitchen, your rules - we'll show you the way! 👑",
+    "Great meals begin with simple ingredients! 🥘",
+  ];
+
   const [ingredients, setIngredients] = useState("");
   const [searchMode, setSearchMode] = useState<"ingredients" | "dish">("ingredients");
+  const [tagline] = useState(() => cookingTaglines[Math.floor(Math.random() * cookingTaglines.length)]);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -344,7 +360,7 @@ export default function Home() {
               </span>
             </h2>
             <p className="mt-4 text-xl text-gray-400 max-w-2xl mx-auto">
-              Tell us what ingredients you have, and we'll create delicious recipes just for you! ✨
+              {tagline}
             </p>
           </div>
 
