@@ -151,6 +151,91 @@ def get_video():
         print(f"ERROR in get_video: {str(e)}")
         return jsonify({"error": f"Failed to generate video URL: {str(e)}"}), 500
 
+@app.route('/api/recipe-image', methods=['POST'])
+def get_recipe_image():
+    """Get a food image URL for a recipe using real food images from Foodish API"""
+    data = request.get_json()
+    recipe_name = data.get('recipe_name', '')
+    index = data.get('index', 0)
+    
+    if not recipe_name:
+        return jsonify({"error": "Recipe name is required"}), 400
+    
+    try:
+        import requests
+        
+        # Try to extract dish type from recipe name (e.g., "Chicken Curry" -> "curry")
+        recipe_lower = recipe_name.lower()
+        
+        # Map common dish types to Foodish API categories
+        foodish_categories = {
+            'burger': 'burger',
+            'pizza': 'pizza',
+            'pasta': 'pasta',
+            'rice': 'rice',
+            'biryani': 'biryani',
+            'dosa': 'dosa',
+            'idly': 'idly',
+            'samosa': 'samosa',
+            'dessert': 'dessert',
+        }
+        
+        # Try to find matching category
+        category = None
+        for key, value in foodish_categories.items():
+            if key in recipe_lower:
+                category = value
+                break
+        
+        # Use Foodish API to get real food images
+        if category:
+            foodish_url = f"https://foodish-api.com/api/images/{category}"
+        else:
+            foodish_url = "https://foodish-api.com/api/"
+        
+        response = requests.get(foodish_url, timeout=3)
+        if response.ok:
+            data = response.json()
+            image_url = data.get('image', '')
+            if image_url:
+                return jsonify({
+                    "image_url": image_url,
+                    "recipe_name": recipe_name
+                })
+        
+        # Fallback: Use a curated list of real food images
+        fallback_images = [
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",  # Salad
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836",  # Food spread
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445",  # Pancakes
+            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38",  # Pizza
+            "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",  # Healthy food
+            "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe",  # Soup
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",  # Burger
+            "https://images.unsplash.com/photo-1563379926898-05f4575a45d8",  # Pasta
+            "https://images.unsplash.com/photo-1516684732162-798a0062be99",  # Asian food
+            "https://images.unsplash.com/photo-1571091718767-18b5b1457add",  # Dessert
+        ]
+        
+        # Use index to pick a consistent image per recipe
+        import hashlib
+        seed = int(hashlib.md5(recipe_name.encode()).hexdigest()[:8], 16)
+        selected_image = fallback_images[seed % len(fallback_images)]
+        
+        # Add Unsplash parameters for proper sizing
+        image_url = f"{selected_image}?w=800&h=600&fit=crop"
+        
+        return jsonify({
+            "image_url": image_url,
+            "recipe_name": recipe_name
+        })
+        
+    except Exception as e:
+        print(f"ERROR in get_recipe_image: {str(e)}")
+        # Ultimate fallback with curated food image
+        fallback_url = f"https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop"
+        return jsonify({"image_url": fallback_url}), 200
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     if not model:

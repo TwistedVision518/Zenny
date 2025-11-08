@@ -11,6 +11,7 @@ interface Recipe {
   ingredients?: string[];
   steps?: string[];
   cooking_time?: string;
+  imageUrl?: string;
 }
 
 interface ChatMessage {
@@ -36,12 +37,33 @@ export default function Home() {
   const [askLoading, setAskLoading] = useState(false);
   const [chatContextRecipe, setChatContextRecipe] = useState<Recipe | null>(null);
   const [streaming, setStreaming] = useState(false);
+  const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
   // Use env-based API base so we can deploy frontend separately (e.g., Netlify) and point to remote Flask backend.
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  // Fetch food image via backend to avoid CORS
+  const fetchFoodImage = async (recipeName: string, index: number): Promise<string> => {
+    try {
+      const response = await fetch(`${API_BASE}/api/recipe-image`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipe_name: recipeName, index })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.image_url;
+      }
+      // Direct fallback if backend fails
+      return `https://picsum.photos/seed/recipe-${index}/800/600`;
+    } catch {
+      // Ultimate fallback
+      return `https://picsum.photos/seed/fallback-${index}/800/600`;
+    }
+  };
 
   const clearIngredients = () => {
     setIngredients("");
@@ -78,7 +100,20 @@ export default function Home() {
       });
       if (!response.ok) throw new Error("Failed to get recipes");
       const data = await response.json();
-      setRecipes(data.recipes || []);
+      const recipesData = data.recipes || [];
+      setRecipes(recipesData);
+      
+      // Fetch images for each recipe in parallel
+      recipesData.forEach(async (recipe: Recipe, index: number) => {
+        setImageLoading((prev) => ({ ...prev, [index]: true }));
+        const imageUrl = await fetchFoodImage(recipe.name, index);
+        setRecipes((prevRecipes) => {
+          const updated = [...prevRecipes];
+          if (updated[index]) updated[index] = { ...updated[index], imageUrl };
+          return updated;
+        });
+        setImageLoading((prev) => ({ ...prev, [index]: false }));
+      });
     } catch (e) {
       setError("Couldn't fetch recipes. Is the backend running?");
     } finally {
@@ -352,6 +387,22 @@ export default function Home() {
                     onClick={() => setSelectedRecipe(recipe)}
                   >
                     <div className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 h-1"></div>
+                    {/* Recipe Image Preview */}
+                    {recipe.imageUrl ? (
+                      <div className="relative w-full h-48 overflow-hidden bg-gray-800">
+                        <img 
+                          src={recipe.imageUrl} 
+                          alt={recipe.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-gray-900/30 to-transparent" />
+                      </div>
+                    ) : imageLoading[index] ? (
+                      <div className="w-full h-48 bg-gray-800 animate-pulse flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">Loading image...</span>
+                      </div>
+                    ) : null}
                     <div className="p-6">
                       <h4 className="text-xl font-bold text-white mb-3 group-hover:bg-gradient-to-r group-hover:from-yellow-400 group-hover:via-pink-500 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all">
                         {recipe.name}
@@ -380,7 +431,28 @@ export default function Home() {
             <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-xl">
               <div className="relative bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 p-[2px] rounded-3xl shadow-[0_0_40px_-10px_rgba(236,72,153,0.45)] w-full max-w-4xl">
                 <div className="relative rounded-3xl bg-gray-950/95 border border-gray-800/80 overflow-hidden flex flex-col max-h-[90vh]">
-                  <div className="px-8 pt-8 pb-6">
+                  {/* Hero Image Section */}
+                  {selectedRecipe.imageUrl && (
+                    <div className="relative w-full h-64 sm:h-80 overflow-hidden">
+                      <img 
+                        src={selectedRecipe.imageUrl} 
+                        alt={selectedRecipe.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-gray-950/70 to-gray-950" />
+                      {/* Close button overlay on image */}
+                      <button
+                        onClick={() => setSelectedRecipe(null)}
+                        className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-black/60 rounded-full p-2.5 transition-colors backdrop-blur-sm bg-black/30"
+                        aria-label="Close modal"
+                      >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  <div className={`px-8 ${selectedRecipe.imageUrl ? 'pt-6' : 'pt-8'} pb-6`}>
                     <div className="flex justify-between items-start">
                       <div className="space-y-3">
                         <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
@@ -396,15 +468,17 @@ export default function Home() {
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-800/80 border border-gray-700 text-gray-300">🧪 Difficulty: Easy</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setSelectedRecipe(null)}
-                        className="text-gray-400 hover:text-white hover:bg-gray-800/60 rounded-full p-2 transition-colors"
-                        aria-label="Close modal"
-                      >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
+                      {!selectedRecipe.imageUrl && (
+                        <button
+                          onClick={() => setSelectedRecipe(null)}
+                          className="text-gray-400 hover:text-white hover:bg-gray-800/60 rounded-full p-2 transition-colors"
+                          aria-label="Close modal"
+                        >
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </div>
 
