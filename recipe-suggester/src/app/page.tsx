@@ -938,7 +938,24 @@ export default function Home() {
                 )}
               </div>
               
-              <div className="grid gap-6">
+              {recipes.length === 0 && (
+                <div className="text-center py-12 mb-6">
+                  <div className="text-6xl mb-4">🍽️</div>
+                  <p className="text-gray-400 text-lg mb-2">No recipes to plan yet!</p>
+                  <p className="text-gray-500 text-sm mb-4">
+                    Generate some recipes first, then come back here to plan your week.
+                  </p>
+                  <button
+                    onClick={() => setShowMealPlanner(false)}
+                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all"
+                  >
+                    ← Back to Search
+                  </button>
+                </div>
+              )}
+              
+              {recipes.length > 0 && (
+                <div className="grid gap-6">
                 {Array.from({ length: 7 }, (_, i) => {
                   const date = new Date();
                   date.setDate(date.getDate() + i);
@@ -1004,7 +1021,8 @@ export default function Home() {
                     </div>
                   );
                 })}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
