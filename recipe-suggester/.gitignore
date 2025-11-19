@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# backend data
+backend/ratings_data.json
+backend/__pycache__/
+backend/*.pyc

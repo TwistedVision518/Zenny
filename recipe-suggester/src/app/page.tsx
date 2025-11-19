@@ -12,6 +12,10 @@ interface Recipe {
   steps?: string[];
   cooking_time?: string;
   imageUrl?: string;
+  dietType?: "veg" | "non-veg" | "vegan";
+  id?: string;
+  averageRating?: number;
+  totalRatings?: number;
 }
 
 interface ChatMessage {
@@ -38,6 +42,9 @@ export default function Home() {
 
   const [ingredients, setIngredients] = useState("");
   const [searchMode, setSearchMode] = useState<"ingredients" | "dish">("ingredients");
+  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non-veg">("all");
+  const [showTrending, setShowTrending] = useState(false);
+  const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   const [tagline] = useState(() => cookingTaglines[Math.floor(Math.random() * cookingTaglines.length)]);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
@@ -142,6 +149,75 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  const handleRateRecipe = async (recipeId: string, rating: number) => {
+    try {
+      const response = await fetch(`${API_BASE}/api/recipes/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipe_id: recipeId, rating }),
+      });
+      if (!response.ok) throw new Error("Failed to rate recipe");
+      const data = await response.json();
+      
+      // Update local state with new rating
+      setUserRatings((prev) => ({ ...prev, [recipeId]: rating }));
+      
+      // Update recipe in the list
+      setRecipes((prevRecipes) =>
+        prevRecipes.map((recipe) =>
+          recipe.id === recipeId
+            ? { ...recipe, averageRating: data.average_rating, totalRatings: data.total_ratings }
+            : recipe
+        )
+      );
+      
+      // Update selected recipe if it's the one being rated
+      if (selectedRecipe?.id === recipeId) {
+        setSelectedRecipe({
+          ...selectedRecipe,
+          averageRating: data.average_rating,
+          totalRatings: data.total_ratings,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to rate recipe:", e);
+    }
+  };
+
+  const fetchTrendingRecipes = async () => {
+    setLoading(true);
+    setError("");
+    setShowTrending(true);
+    try {
+      const response = await fetch(`${API_BASE}/api/recipes/trending`);
+      if (!response.ok) throw new Error("Failed to get trending recipes");
+      const data = await response.json();
+      const recipesData = data.recipes || [];
+      setRecipes(recipesData);
+      
+      // Fetch images for each recipe
+      recipesData.forEach(async (recipe: Recipe, index: number) => {
+        setImageLoading((prev) => ({ ...prev, [index]: true }));
+        const imageUrl = await fetchFoodImage(recipe.name, index);
+        setRecipes((prevRecipes) => {
+          const updated = [...prevRecipes];
+          if (updated[index]) updated[index] = { ...updated[index], imageUrl };
+          return updated;
+        });
+        setImageLoading((prev) => ({ ...prev, [index]: false }));
+      });
+    } catch (e) {
+      setError("Couldn't fetch trending recipes. Is the backend running?");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredRecipes = recipes.filter((recipe) => {
+    if (dietFilter === "all") return true;
+    return recipe.dietType === dietFilter;
+  });
 
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
@@ -369,9 +445,9 @@ export default function Home() {
               {/* Search Mode Toggle */}
               <div className="flex items-center justify-center gap-2 mb-4">
                 <button
-                  onClick={() => { setSearchMode("ingredients"); setError(""); }}
+                  onClick={() => { setSearchMode("ingredients"); setError(""); setShowTrending(false); }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    searchMode === "ingredients"
+                    searchMode === "ingredients" && !showTrending
                       ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
                       : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
                   }`}
@@ -379,16 +455,63 @@ export default function Home() {
                   🥘 By Ingredients
                 </button>
                 <button
-                  onClick={() => { setSearchMode("dish"); setError(""); }}
+                  onClick={() => { setSearchMode("dish"); setError(""); setShowTrending(false); }}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    searchMode === "dish"
+                    searchMode === "dish" && !showTrending
                       ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
                       : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
                   }`}
                 >
                   🍽️ By Dish Name
                 </button>
+                <button
+                  onClick={fetchTrendingRecipes}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    showTrending
+                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  🔥 Trending
+                </button>
               </div>
+              
+              {/* Diet Filter */}
+              {!showTrending && (
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <span className="text-gray-400 text-sm mr-2">Diet:</span>
+                  <button
+                    onClick={() => setDietFilter("all")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      dietFilter === "all"
+                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
+                        : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setDietFilter("veg")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      dietFilter === "veg"
+                        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md"
+                        : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                    }`}
+                  >
+                    🥬 Veg
+                  </button>
+                  <button
+                    onClick={() => setDietFilter("non-veg")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      dietFilter === "non-veg"
+                        ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md"
+                        : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                    }`}
+                  >
+                    🍖 Non-Veg
+                  </button>
+                </div>
+              )}
               
               <div className="flex flex-col sm:flex-row gap-3">
                 <div ref={inputWrapRef} className="relative flex-grow rounded-xl">
@@ -462,10 +585,18 @@ export default function Home() {
           {recipes.length > 0 && (
             <div className="mt-10">
               <h3 className="text-3xl font-bold text-white mb-8 text-center">
-                🍽️ Your Personalized <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">Recipes</span>
+                {showTrending ? '🔥 ' : '🍽️ Your Personalized '}
+                <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                  {showTrending ? 'Trending Recipes' : 'Recipes'}
+                </span>
+                {filteredRecipes.length !== recipes.length && (
+                  <span className="text-sm text-gray-400 ml-3">
+                    ({filteredRecipes.length} of {recipes.length})
+                  </span>
+                )}
               </h3>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {recipes.map((recipe, index) => (
+                {filteredRecipes.map((recipe, index) => (
                   <div 
                     key={index} 
                     className="group bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-800 cursor-pointer transform hover:-translate-y-2 hover:border-gray-700"
@@ -489,18 +620,40 @@ export default function Home() {
                       </div>
                     ) : null}
                     <div className="p-6">
-                      <h4 className="text-xl font-bold text-white mb-3 group-hover:bg-gradient-to-r group-hover:from-yellow-400 group-hover:via-pink-500 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all">
-                        {recipe.name}
-                      </h4>
+                      <div className="flex items-start justify-between mb-3">
+                        <h4 className="text-xl font-bold text-white group-hover:bg-gradient-to-r group-hover:from-yellow-400 group-hover:via-pink-500 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all">
+                          {recipe.name}
+                        </h4>
+                        {recipe.dietType && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ml-2 ${
+                            recipe.dietType === 'veg' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                            recipe.dietType === 'vegan' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                            'bg-red-500/20 text-red-400 border border-red-500/30'
+                          }`}>
+                            {recipe.dietType === 'veg' ? '🥬 Veg' : recipe.dietType === 'vegan' ? '🌱 Vegan' : '🍖 Non-Veg'}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-gray-400 mb-4 line-clamp-3">
                         {recipe.description}
                       </p>
-                      {recipe.cooking_time && (
-                        <div className="flex items-center space-x-2 text-sm text-gray-500 font-medium mb-4">
-                          <span>⏱️</span>
-                          <span>{recipe.cooking_time}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between mb-4">
+                        {recipe.cooking_time && (
+                          <div className="flex items-center space-x-2 text-sm text-gray-500 font-medium">
+                            <span>⏱️</span>
+                            <span>{recipe.cooking_time}</span>
+                          </div>
+                        )}
+                        {recipe.averageRating !== undefined && (
+                          <div className="flex items-center space-x-1 text-sm">
+                            <span className="text-yellow-400">⭐</span>
+                            <span className="text-white font-semibold">{recipe.averageRating.toFixed(1)}</span>
+                            {recipe.totalRatings && (
+                              <span className="text-gray-500">({recipe.totalRatings})</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <button className="mt-2 flex items-center space-x-2 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent font-semibold text-sm group-hover:translate-x-1 transition-transform">
                         <span>View Full Recipe</span>
                         <span>→</span>
@@ -550,8 +703,45 @@ export default function Home() {
                               ⏱️ {selectedRecipe.cooking_time}
                             </span>
                           )}
+                          {selectedRecipe.dietType && (
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                              selectedRecipe.dietType === 'veg' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                              selectedRecipe.dietType === 'vegan' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                              'bg-red-500/20 text-red-400 border border-red-500/30'
+                            }`}>
+                              {selectedRecipe.dietType === 'veg' ? '🥬 Vegetarian' : selectedRecipe.dietType === 'vegan' ? '🌱 Vegan' : '🍖 Non-Vegetarian'}
+                            </span>
+                          )}
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-800/80 border border-gray-700 text-gray-300">🧪 Difficulty: Easy</span>
                         </div>
+                        {selectedRecipe.id && (
+                          <div className="mt-4 flex items-center gap-4">
+                            <span className="text-sm text-gray-400">Rate this recipe:</span>
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                  key={star}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (selectedRecipe.id) handleRateRecipe(selectedRecipe.id, star);
+                                  }}
+                                  className={`text-2xl transition-all hover:scale-110 ${
+                                    (userRatings[selectedRecipe.id!] || 0) >= star
+                                      ? 'text-yellow-400'
+                                      : 'text-gray-600 hover:text-yellow-400/50'
+                                  }`}
+                                >
+                                  ⭐
+                                </button>
+                              ))}
+                            </div>
+                            {selectedRecipe.averageRating !== undefined && (
+                              <span className="text-sm text-gray-400">
+                                {selectedRecipe.averageRating.toFixed(1)} ({selectedRecipe.totalRatings || 0} ratings)
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       {!selectedRecipe.imageUrl && (
                         <button

@@ -4,6 +4,8 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 import json
+import threading
+import time
 
 # Load environment variables from .env file
 dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
@@ -11,6 +13,41 @@ load_dotenv(dotenv_path)
 
 app = Flask(__name__)
 CORS(app)
+
+# Ratings persistence file
+RATINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ratings_data.json')
+ratings_lock = threading.Lock()
+
+# Load ratings from file on startup
+def load_ratings():
+    """Load ratings from JSON file"""
+    if os.path.exists(RATINGS_FILE):
+        try:
+            with open(RATINGS_FILE, 'r') as f:
+                data = json.load(f)
+                print(f"✅ Loaded {len(data)} recipe ratings from file")
+                return data
+        except Exception as e:
+            print(f"⚠️  Error loading ratings: {e}")
+            return {}
+    return {}
+
+# Save ratings to file
+def save_ratings(ratings_data):
+    """Save ratings to JSON file (async to avoid blocking)"""
+    def _save():
+        try:
+            with ratings_lock:
+                with open(RATINGS_FILE, 'w') as f:
+                    json.dump(ratings_data, f, indent=2)
+        except Exception as e:
+            print(f"⚠️  Error saving ratings: {e}")
+    
+    # Save in background thread to not block requests
+    threading.Thread(target=_save, daemon=True).start()
+
+# In-memory storage for ratings (loaded from file)
+recipe_ratings = load_ratings()
 
 # Initialize Gemini client
 api_key = os.getenv('GEMINI_API_KEY')
@@ -47,6 +84,7 @@ Please provide 5 variations or similar recipes for this dish. For each recipe, p
 - ingredients: array of main ingredients needed
 - steps: array of 3-5 quick preparation steps
 - cooking_time: estimated cooking time
+- dietType: one of "veg", "non-veg", or "vegan"
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
 
@@ -73,6 +111,14 @@ Return ONLY a valid JSON array of recipe objects, no additional text or markdown
                 else:
                     recipes = []
             print(f"Successfully parsed {len(recipes)} recipe variations")
+            # Add IDs and rating info to recipes
+            for i, recipe in enumerate(recipes):
+                recipe['id'] = f"dish_{dish_name.lower().replace(' ', '_')}_{i}"
+                if recipe['id'] in recipe_ratings:
+                    recipe['averageRating'] = round(
+                        recipe_ratings[recipe['id']]['total'] / recipe_ratings[recipe['id']]['count'], 1
+                    )
+                    recipe['totalRatings'] = recipe_ratings[recipe['id']]['count']
             return jsonify({"recipes": recipes})
         except json.JSONDecodeError as e:
             print(f"JSON parsing error: {e}")
@@ -120,6 +166,7 @@ Please suggest 5 delicious recipes that can be made using some or all of these i
 - ingredients: array of main ingredients needed
 - steps: array of 3-5 quick preparation steps
 - cooking_time: estimated cooking time
+- dietType: one of "veg", "non-veg", or "vegan"
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
 
@@ -147,6 +194,14 @@ Return ONLY a valid JSON array of recipe objects, no additional text or markdown
                 else:
                     recipes = []
             print(f"Successfully parsed {len(recipes)} recipes")
+            # Add IDs and rating info to recipes
+            for i, recipe in enumerate(recipes):
+                recipe['id'] = f"ingredient_{i}_{recipe['name'].lower().replace(' ', '_')}"
+                if recipe['id'] in recipe_ratings:
+                    recipe['averageRating'] = round(
+                        recipe_ratings[recipe['id']]['total'] / recipe_ratings[recipe['id']]['count'], 1
+                    )
+                    recipe['totalRatings'] = recipe_ratings[recipe['id']]['count']
             return jsonify({"recipes": recipes})
         except json.JSONDecodeError as e:
             print(f"JSON parsing error: {e}")
@@ -339,6 +394,140 @@ Provide a helpful, concise, and friendly response. If discussing substitutions, 
     except Exception as e:
         print(f"ERROR in chat: {str(e)}")
         return jsonify({"error": f"Failed to generate response: {str(e)}"}), 500
+
+@app.route('/api/recipes/rate', methods=['POST'])
+def rate_recipe():
+    """Rate a recipe"""
+    data = request.get_json()
+    recipe_id = data.get('recipe_id')
+    rating = data.get('rating')
+    
+    if not recipe_id or not rating:
+        return jsonify({"error": "Missing recipe_id or rating"}), 400
+    
+    if not (1 <= rating <= 5):
+        return jsonify({"error": "Rating must be between 1 and 5"}), 400
+    
+    # Initialize recipe ratings if not exists
+    if recipe_id not in recipe_ratings:
+        recipe_ratings[recipe_id] = {'ratings': [], 'total': 0, 'count': 0}
+    
+    # Add the rating
+    recipe_ratings[recipe_id]['ratings'].append(rating)
+    recipe_ratings[recipe_id]['total'] += rating
+    recipe_ratings[recipe_id]['count'] += 1
+    
+    # Calculate average
+    avg_rating = recipe_ratings[recipe_id]['total'] / recipe_ratings[recipe_id]['count']
+    
+    # Save ratings to file asynchronously (non-blocking)
+    save_ratings(recipe_ratings)
+    
+    return jsonify({
+        "success": True,
+        "average_rating": round(avg_rating, 1),
+        "total_ratings": recipe_ratings[recipe_id]['count']
+    })
+
+@app.route('/api/recipes/ratings', methods=['GET'])
+def get_all_ratings():
+    """Get all ratings data (for analytics)"""
+    # Calculate stats
+    total_recipes_rated = len(recipe_ratings)
+    total_ratings_count = sum(data['count'] for data in recipe_ratings.values())
+    
+    # Get top rated recipes
+    top_rated = sorted(
+        [
+            {
+                'recipe_id': recipe_id,
+                'average_rating': round(data['total'] / data['count'], 1),
+                'total_ratings': data['count']
+            }
+            for recipe_id, data in recipe_ratings.items()
+        ],
+        key=lambda x: (x['average_rating'], x['total_ratings']),
+        reverse=True
+    )[:10]
+    
+    return jsonify({
+        "total_recipes_rated": total_recipes_rated,
+        "total_ratings_count": total_ratings_count,
+        "top_rated": top_rated,
+        "all_ratings": recipe_ratings
+    })
+
+@app.route('/api/recipes/trending', methods=['GET'])
+def get_trending_recipes():
+    """Get trending recipes based on ratings"""
+    if not model:
+        return jsonify({"error": "Gemini API key not configured"}), 500
+    
+    try:
+        # Get top rated recipe names
+        sorted_recipes = sorted(
+            recipe_ratings.items(),
+            key=lambda x: (x[1]['total'] / x[1]['count'], x[1]['count']),
+            reverse=True
+        )[:10]
+        
+        if not sorted_recipes:
+            # If no ratings yet, return popular recipes
+            prompt = """Please suggest 8 trending and popular recipes from around the world. For each recipe, provide the following information in valid JSON format:
+- name: recipe name
+- description: brief description highlighting what makes it popular (1-2 sentences)
+- ingredients: array of main ingredients needed
+- steps: array of 3-5 quick preparation steps
+- cooking_time: estimated cooking time
+- dietType: one of "veg", "non-veg", or "vegan"
+
+Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
+        else:
+            # Generate recipes based on top rated ones
+            top_names = [recipe_id for recipe_id, _ in sorted_recipes[:3]]
+            prompt = f"""Based on these trending recipes: {', '.join(top_names)}, suggest 8 similar popular recipes. For each recipe, provide the following information in valid JSON format:
+- name: recipe name
+- description: brief description (1-2 sentences)
+- ingredients: array of main ingredients needed
+- steps: array of 3-5 quick preparation steps
+- cooking_time: estimated cooking time
+- dietType: one of "veg", "non-veg", or "vegan"
+
+Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
+        
+        response = model.generate_content(prompt)
+        recipes_text = response.text
+        
+        # Clean up the response
+        if '```json' in recipes_text:
+            recipes_text = recipes_text.split('```json')[1].split('```')[0].strip()
+        elif '```' in recipes_text:
+            recipes_text = recipes_text.split('```')[1].split('```')[0].strip()
+        
+        recipes = json.loads(recipes_text)
+        if isinstance(recipes, dict):
+            possible_lists = [v for v in recipes.values() if isinstance(v, list)]
+            if possible_lists:
+                recipes = possible_lists[0]
+            else:
+                recipes = []
+        
+        # Add IDs and rating info to recipes
+        for i, recipe in enumerate(recipes):
+            recipe['id'] = f"trending_{i}_{recipe['name'].lower().replace(' ', '_')}"
+            if recipe['id'] in recipe_ratings:
+                recipe['averageRating'] = round(
+                    recipe_ratings[recipe['id']]['total'] / recipe_ratings[recipe['id']]['count'], 1
+                )
+                recipe['totalRatings'] = recipe_ratings[recipe['id']]['count']
+        
+        return jsonify({"recipes": recipes})
+    
+    except Exception as e:
+        print(f"ERROR in get_trending_recipes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to generate trending recipes: {str(e)}"}), 500
 
 @app.route('/api/chat/stream', methods=['POST'])
 def chat_stream():
