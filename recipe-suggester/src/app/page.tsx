@@ -742,57 +742,87 @@ export default function Home() {
               {!showTrending && recipes.length > 0 && (
                 <div className="flex flex-wrap items-center gap-3 mt-3 pb-3 border-b border-gray-700">
                   {/* Time Filter */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">⏱️ Max Time:</span>
-                    <select
-                      value={timeFilter}
-                      onChange={(e) => setTimeFilter(Number(e.target.value))}
-                      className="px-2 py-1 text-xs bg-gray-800/60 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 hover:scale-105 active:scale-95"
-                    >
-                      <option value={120}>Any</option>
-                      <option value={15}>15 min</option>
-                      <option value={30}>30 min</option>
-                      <option value={45}>45 min</option>
-                      <option value={60}>1 hour</option>
-                      <option value={90}>1.5 hours</option>
-                    </select>
+                  <div className="flex items-center gap-2 group">
+                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">⏱️ Max Time:</span>
+                    <div className="relative">
+                      <select
+                        value={timeFilter}
+                        onChange={(e) => setTimeFilter(Number(e.target.value))}
+                        className="px-3 py-2 text-xs bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 0.5rem center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '1.2em 1.2em',
+                          paddingRight: '2.2rem'
+                        }}
+                      >
+                        <option value={120} className="bg-gray-900 text-gray-200">Any</option>
+                        <option value={15} className="bg-gray-900 text-gray-200">15 min</option>
+                        <option value={30} className="bg-gray-900 text-gray-200">30 min</option>
+                        <option value={45} className="bg-gray-900 text-gray-200">45 min</option>
+                        <option value={60} className="bg-gray-900 text-gray-200">1 hour</option>
+                        <option value={90} className="bg-gray-900 text-gray-200">1.5 hours</option>
+                      </select>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-yellow-400/0 hover:from-purple-500/10 hover:via-pink-500/10 hover:to-yellow-400/10 pointer-events-none transition-all duration-300"></div>
+                    </div>
                   </div>
 
                   {/* Difficulty Filter */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">📊 Difficulty:</span>
-                    <select
-                      value={difficultyFilter}
-                      onChange={(e) => setDifficultyFilter(e.target.value as "Easy" | "Medium" | "Hard" | "all")}
-                      className="px-2 py-1 text-xs bg-gray-800/60 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 hover:scale-105 active:scale-95"
-                    >
-                      <option value="all">All</option>
-                      <option value="Easy">Easy</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                    </select>
+                  <div className="flex items-center gap-2 group">
+                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">📊 Difficulty:</span>
+                    <div className="relative">
+                      <select
+                        value={difficultyFilter}
+                        onChange={(e) => setDifficultyFilter(e.target.value as "Easy" | "Medium" | "Hard" | "all")}
+                        className="px-3 py-2 text-xs bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 0.5rem center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '1.2em 1.2em',
+                          paddingRight: '2.2rem'
+                        }}
+                      >
+                        <option value="all" className="bg-gray-900 text-gray-200">All</option>
+                        <option value="Easy" className="bg-gray-900 text-gray-200">Easy</option>
+                        <option value="Medium" className="bg-gray-900 text-gray-200">Medium</option>
+                        <option value="Hard" className="bg-gray-900 text-gray-200">Hard</option>
+                      </select>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-yellow-400/0 hover:from-purple-500/10 hover:via-pink-500/10 hover:to-yellow-400/10 pointer-events-none transition-all duration-300"></div>
+                    </div>
                   </div>
 
                   {/* Cuisine Filter */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400">🌍 Cuisine:</span>
-                    <select
-                      value={cuisineFilter}
-                      onChange={(e) => setCuisineFilter(e.target.value)}
-                      className="px-2 py-1 text-xs bg-gray-800/60 border border-gray-700 rounded-lg text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 hover:scale-105 active:scale-95"
-                    >
-                      <option value="all">All</option>
-                      <option value="Indian">Indian</option>
-                      <option value="Chinese">Chinese</option>
-                      <option value="Italian">Italian</option>
-                      <option value="Mexican">Mexican</option>
-                      <option value="American">American</option>
-                      <option value="Thai">Thai</option>
-                      <option value="Japanese">Japanese</option>
-                      <option value="Mediterranean">Mediterranean</option>
-                      <option value="French">French</option>
-                      <option value="Other">Other</option>
-                    </select>
+                  <div className="flex items-center gap-2 group">
+                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">🌍 Cuisine:</span>
+                    <div className="relative">
+                      <select
+                        value={cuisineFilter}
+                        onChange={(e) => setCuisineFilter(e.target.value)}
+                        className="px-3 py-2 text-xs bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 0.5rem center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '1.2em 1.2em',
+                          paddingRight: '2.2rem'
+                        }}
+                      >
+                        <option value="all" className="bg-gray-900 text-gray-200">All</option>
+                        <option value="Indian" className="bg-gray-900 text-gray-200">Indian</option>
+                        <option value="Chinese" className="bg-gray-900 text-gray-200">Chinese</option>
+                        <option value="Italian" className="bg-gray-900 text-gray-200">Italian</option>
+                        <option value="Mexican" className="bg-gray-900 text-gray-200">Mexican</option>
+                        <option value="American" className="bg-gray-900 text-gray-200">American</option>
+                        <option value="Thai" className="bg-gray-900 text-gray-200">Thai</option>
+                        <option value="Japanese" className="bg-gray-900 text-gray-200">Japanese</option>
+                        <option value="Mediterranean" className="bg-gray-900 text-gray-200">Mediterranean</option>
+                        <option value="French" className="bg-gray-900 text-gray-200">French</option>
+                        <option value="Other" className="bg-gray-900 text-gray-200">Other</option>
+                      </select>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-yellow-400/0 hover:from-purple-500/10 hover:via-pink-500/10 hover:to-yellow-400/10 pointer-events-none transition-all duration-300"></div>
+                    </div>
                   </div>
 
                   {/* Favorites Toggle */}
@@ -1059,24 +1089,24 @@ export default function Home() {
                                         e.target.value = '';
                                       }
                                     }}
-                                    className="w-full bg-gray-800/80 border-2 border-gray-700 hover:border-purple-500/50 rounded-lg px-3 py-2.5 text-gray-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 cursor-pointer appearance-none hover:scale-[1.02] active:scale-95"
+                                    className="w-full bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/70 rounded-xl px-4 py-3 text-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-purple-500/30"
                                     defaultValue=""
                                     style={{
-                                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                                      backgroundPosition: 'right 0.5rem center',
+                                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                                      backgroundPosition: 'right 0.75rem center',
                                       backgroundRepeat: 'no-repeat',
                                       backgroundSize: '1.5em 1.5em',
-                                      paddingRight: '2.5rem'
+                                      paddingRight: '3rem'
                                     }}
                                   >
-                                    <option value="" className="bg-gray-900 text-gray-400">+ Add recipe...</option>
+                                    <option value="" className="bg-gray-900 text-gray-300 font-semibold">✨ Add recipe...</option>
                                     {recipes.map((r, idx) => (
-                                      <option key={idx} value={r.id} className="bg-gray-900 text-white py-2">
+                                      <option key={idx} value={r.id} className="bg-gray-900 text-white py-2 font-medium">
                                         {r.name}
                                       </option>
                                     ))}
                                   </select>
-                                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-yellow-400/0 group-hover:from-purple-500/5 group-hover:via-pink-500/5 group-hover:to-yellow-400/5 pointer-events-none transition-all duration-300"></div>
+                                  <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-yellow-400/0 group-hover:from-purple-500/15 group-hover:via-pink-500/15 group-hover:to-yellow-400/15 pointer-events-none transition-all duration-300"></div>
                                 </div>
                               )}
                             </div>
