@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import json
 import threading
 import time
+import re
 
 # Load environment variables from .env file
 dotenv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
@@ -17,6 +18,10 @@ CORS(app)
 # Ratings persistence file
 RATINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ratings_data.json')
 ratings_lock = threading.Lock()
+
+# Image cache persistence file
+IMAGE_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'image_cache.json')
+image_cache_lock = threading.Lock()
 
 # Load ratings from file on startup
 def load_ratings():
@@ -48,6 +53,131 @@ def save_ratings(ratings_data):
 
 # In-memory storage for ratings (loaded from file)
 recipe_ratings = load_ratings()
+
+# -------- Deterministic image selection & caching -------- #
+
+def load_image_cache():
+    """Load previously chosen images to keep results stable across restarts."""
+    if os.path.exists(IMAGE_CACHE_FILE):
+        try:
+            with open(IMAGE_CACHE_FILE, 'r') as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    print(f"✅ Loaded {len(data)} cached recipe images")
+                    return data
+        except Exception as e:
+            print(f"⚠️  Error loading image cache: {e}")
+    return {}
+
+
+def save_image_cache(cache: dict):
+    """Persist image cache asynchronously (non-blocking)."""
+    def _save():
+        try:
+            with image_cache_lock:
+                with open(IMAGE_CACHE_FILE, 'w') as f:
+                    json.dump(cache, f, indent=2)
+        except Exception as e:
+            print(f"⚠️  Error saving image cache: {e}")
+
+    threading.Thread(target=_save, daemon=True).start()
+
+
+image_cache = load_image_cache()
+
+# Curated categories with synonyms and stable Unsplash photo ids
+CURATED_IMAGES = {
+    # carbs / bases
+    'pizza': { 'keywords': ['pizza', 'margherita', 'pepperoni'], 'unsplash': 'photo-1513104890138-7c749659a591' },
+    'burger': { 'keywords': ['burger', 'cheeseburger', 'hamburger', 'patty'], 'unsplash': 'photo-1568901346375-23c9450c58cd' },
+    'pasta': { 'keywords': ['pasta', 'spaghetti', 'penne', 'fettuccine', 'lasagna'], 'unsplash': 'photo-1621996346565-e3dbc646d9a9' },
+    'noodles': { 'keywords': ['noodle', 'noodles', 'ramen', 'udon', 'soba', 'chowmein'], 'unsplash': 'photo-1612929633738-8fe44f7ec841' },
+    'rice': { 'keywords': ['rice', 'fried rice', 'pilaf', 'pulao', 'risotto'], 'unsplash': 'photo-1603133872878-684f208fb84b' },
+    'biryani': { 'keywords': ['biryani'], 'unsplash': 'photo-1604908177071-927c7f6db98f' },
+    'sandwich': { 'keywords': ['sandwich', 'sub', 'grilled cheese', 'panini'], 'unsplash': 'photo-1528735602780-2552fd46c7af' },
+
+    # proteins / mains
+    'chicken': { 'keywords': ['chicken', 'butter chicken', 'tikka', 'tandoori'], 'unsplash': 'photo-1598103442097-8b74394b95c6' },
+    'fish': { 'keywords': ['fish', 'salmon', 'cod', 'trout'], 'unsplash': 'photo-1580959375944-0b9b33f4b964' },
+    'steak': { 'keywords': ['steak', 'beefsteak', 'sirloin', 'ribeye'], 'unsplash': 'photo-1546833999-b9f581a1996d' },
+    'kebab': { 'keywords': ['kebab', 'shawarma', 'kofta', 'seekh'], 'unsplash': 'photo-1544025162-d76694265947' },
+    'taco': { 'keywords': ['taco', 'tacos'], 'unsplash': 'photo-1565299585323-38d6b0865b47' },
+    'sushi': { 'keywords': ['sushi', 'maki', 'nigiri', 'sashimi'], 'unsplash': 'photo-1579584425555-c3ce17fd4351' },
+
+    # styles / dishes
+    'curry': { 'keywords': ['curry', 'masala'], 'unsplash': 'photo-1565557623262-b51c2513a641' },
+    'stew': { 'keywords': ['stew', 'ragout'], 'unsplash': 'photo-1547592166-23ac45744acd' },
+    'soup': { 'keywords': ['soup', 'broth', 'pho', 'tom yum', 'ramen soup'], 'unsplash': 'photo-1547592166-23ac45744acd' },
+    'salad': { 'keywords': ['salad', 'greens', 'caesar'], 'unsplash': 'photo-1512621776951-a57141f2eefd' },
+    'breakfast': { 'keywords': ['breakfast', 'brunch'], 'unsplash': 'photo-1533089860892-a7c6f0a88666' },
+    'pancake': { 'keywords': ['pancake', 'waffle'], 'unsplash': 'photo-1567620905732-2d1ec7ab7445' },
+    'egg': { 'keywords': ['egg', 'omelette', 'omelet', 'scramble'], 'unsplash': 'photo-1525351484163-7529414344d8' },
+    'bread': { 'keywords': ['bread', 'toast', 'baguette', 'loaf'], 'unsplash': 'photo-1509440159596-0249088772ff' },
+
+    # sweets & drinks
+    'dessert': { 'keywords': ['dessert', 'sweet'], 'unsplash': 'photo-1551024506-0bccd828d307' },
+    'cake': { 'keywords': ['cake', 'cheesecake'], 'unsplash': 'photo-1578985545062-69928b1d9587' },
+    'smoothie': { 'keywords': ['smoothie', 'shake', 'milkshake'], 'unsplash': 'photo-1505252585461-04db1eb84625' },
+    'fruit': { 'keywords': ['fruit', 'fruits', 'fruit salad'], 'unsplash': 'photo-1490474418585-ba9bad8fd0ea' },
+    'vegetable': { 'keywords': ['vegetable', 'veggies'], 'unsplash': 'photo-1540420773420-3366772f4999' },
+}
+
+GENERIC_FOOD_IMAGE = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop&auto=format&q=80"
+
+
+_ADJECTIVES = re.compile(r"\b(spicy|classic|traditional|homemade|easy|quick|simple|delicious|tasty|authentic|crispy|creamy|savory|sweet|best|ultimate|perfect)\b", re.I)
+_NON_WORDS = re.compile(r"[^a-zA-Z\s]")
+
+
+def _normalize(text: str) -> str:
+    text = text.lower().strip()
+    text = _NON_WORDS.sub(" ", text)
+    text = _ADJECTIVES.sub(" ", text)
+    text = re.sub(r"\s+", " ", text)
+    return text
+
+
+def choose_deterministic_image(recipe_name: str):
+    """Return (image_url, category, confidence) with strict matching.
+
+    Rules:
+    - If we have an exact cache entry, return it.
+    - Score curated categories by token overlap. Require score >= 1 to accept.
+    - If no confident match, return GENERIC_FOOD_IMAGE with confidence 0.
+    This guarantees we never show a clearly wrong image.
+    """
+    norm = _normalize(recipe_name)
+    # Cache hit
+    cached = image_cache.get(norm)
+    if cached:
+        return cached.get('url'), cached.get('category'), cached.get('confidence', 1.0)
+
+    tokens = set(norm.split())
+    best_cat = None
+    best_score = 0
+    # Evaluate categories
+    for cat, meta in CURATED_IMAGES.items():
+        score = 0
+        for kw in meta['keywords']:
+            kw_tokens = set(_normalize(kw).split())
+            if kw_tokens and kw_tokens.issubset(tokens):
+                score += len(kw_tokens)  # bigger phrases score higher
+        if score > best_score:
+            best_score = score
+            best_cat = cat
+
+    if best_cat and best_score >= 1:
+        photo_id = CURATED_IMAGES[best_cat]['unsplash']
+        url = f"https://images.unsplash.com/{photo_id}?w=800&h=600&fit=crop&auto=format&q=80"
+        # Store in cache
+        image_cache[norm] = { 'url': url, 'category': best_cat, 'confidence': float(best_score) }
+        save_image_cache(image_cache)
+        return url, best_cat, float(best_score)
+
+    # Low confidence -> generic safe image
+    image_cache[norm] = { 'url': GENERIC_FOOD_IMAGE, 'category': 'generic', 'confidence': 0.0 }
+    save_image_cache(image_cache)
+    return GENERIC_FOOD_IMAGE, 'generic', 0.0
 
 # Initialize Gemini client
 api_key = os.getenv('GEMINI_API_KEY')
@@ -275,149 +405,32 @@ def get_video():
 
 @app.route('/api/recipe-image', methods=['POST'])
 def get_recipe_image():
-    """Get a food image URL for a recipe using Unsplash API for better accuracy"""
-    data = request.get_json()
+    """Get a food image URL for a recipe with strict accuracy guarantees.
+
+    Strategy:
+    - Deterministic curated matching with caching.
+    - If we cannot confidently match, return a neutral generic food image
+      rather than a potentially wrong dish photo.
+    - This guarantees we never show a mismatched dish image.
+    """
+    data = request.get_json() or {}
     recipe_name = data.get('recipe_name', '')
-    index = data.get('index', 0)
-    
+
     if not recipe_name:
         return jsonify({"error": "Recipe name is required"}), 400
-    
+
     try:
-        import requests
-        import hashlib
-        
-        # Clean recipe name for better search
-        recipe_lower = recipe_name.lower()
-        
-        # Extract key food terms (remove adjectives like "spicy", "classic", etc.)
-        remove_words = ['spicy', 'classic', 'traditional', 'homemade', 'easy', 'quick', 'simple', 
-                       'delicious', 'tasty', 'authentic', 'crispy', 'creamy', 'savory', 'sweet']
-        search_terms = recipe_lower
-        for word in remove_words:
-            search_terms = search_terms.replace(word, '')
-        search_terms = search_terms.strip()
-        
-        # Use Unsplash API with specific food search
-        # Using Unsplash Source for simpler API without auth
-        # Format: https://source.unsplash.com/800x600/?food,{search_term}
-        
-        # Try Foodish API first for specific categories (more accurate)
-        foodish_categories = {
-            'burger': 'burger',
-            'pizza': 'pizza',
-            'pasta': 'pasta',
-            'rice': 'rice',
-            'biryani': 'biryani',
-            'dosa': 'dosa',
-            'idly': 'idly',
-            'samosa': 'samosa',
-            'dessert': 'dessert',
-            'butter chicken': 'butter-chicken',
-            'tikka': 'butter-chicken',
-        }
-        
-        # Try to find matching category
-        category = None
-        for key, value in foodish_categories.items():
-            if key in recipe_lower:
-                category = value
-                break
-        
-        # Use Foodish API for specific dishes
-        if category:
-            foodish_url = f"https://foodish-api.com/api/images/{category}"
-            try:
-                response = requests.get(foodish_url, timeout=3)
-                if response.ok:
-                    foodish_data = response.json()
-                    image_url = foodish_data.get('image', '')
-                    if image_url:
-                        return jsonify({
-                            "image_url": image_url,
-                            "recipe_name": recipe_name,
-                            "source": "foodish"
-                        })
-            except:
-                pass
-        
-        # Fallback to curated Unsplash images with specific IDs for consistency and accuracy
-        # These are real, high-quality food photos matched to common dish types
-        dish_image_mapping = {
-            'salad': 'photo-1512621776951-a57141f2eefd',
-            'soup': 'photo-1547592166-23ac45744acd',
-            'pasta': 'photo-1621996346565-e3dbc646d9a9',
-            'pizza': 'photo-1513104890138-7c749659a591',
-            'burger': 'photo-1568901346375-23c9450c58cd',
-            'sandwich': 'photo-1528735602780-2552fd46c7af',
-            'curry': 'photo-1565557623262-b51c2513a641',
-            'rice': 'photo-1603133872878-684f208fb84b',
-            'noodles': 'photo-1612929633738-8fe44f7ec841',
-            'chicken': 'photo-1598103442097-8b74394b95c6',
-            'fish': 'photo-1580959375944-0b9b33f4b964',
-            'meat': 'photo-1529692236671-f1f6cf9683ba',
-            'steak': 'photo-1546833999-b9f581a1996d',
-            'taco': 'photo-1565299585323-38d6b0865b47',
-            'sushi': 'photo-1579584425555-c3ce17fd4351',
-            'dessert': 'photo-1551024506-0bccd828d307',
-            'cake': 'photo-1578985545062-69928b1d9587',
-            'pancake': 'photo-1567620905732-2d1ec7ab7445',
-            'breakfast': 'photo-1533089860892-a7c6f0a88666',
-            'egg': 'photo-1525351484163-7529414344d8',
-            'bread': 'photo-1509440159596-0249088772ff',
-            'vegetable': 'photo-1540420773420-3366772f4999',
-            'fruit': 'photo-1490474418585-ba9bad8fd0ea',
-            'smoothie': 'photo-1505252585461-04db1eb84625',
-        }
-        
-        # Find best matching image based on recipe name
-        matched_photo = None
-        for keyword, photo_id in dish_image_mapping.items():
-            if keyword in recipe_lower:
-                matched_photo = photo_id
-                break
-        
-        # If we found a match, return the specific Unsplash image
-        if matched_photo:
-            image_url = f"https://images.unsplash.com/{matched_photo}?w=800&h=600&fit=crop"
-            return jsonify({
-                "image_url": image_url,
-                "recipe_name": recipe_name,
-                "source": "unsplash_curated"
-            })
-        
-        # Final fallback: Generic food images
-        fallback_images = [
-            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",  # Salad
-            "https://images.unsplash.com/photo-1504674900247-0877df9cc836",  # Food spread
-            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445",  # Pancakes
-            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38",  # Pizza
-            "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",  # Healthy food
-            "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe",  # Soup
-            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",  # Burger
-            "https://images.unsplash.com/photo-1563379926898-05f4575a45d8",  # Pasta
-            "https://images.unsplash.com/photo-1516684732162-798a0062be99",  # Asian food
-            "https://images.unsplash.com/photo-1571091718767-18b5b1457add",  # Dessert
-        ]
-        
-        # Use index to pick a consistent image per recipe
-        import hashlib
-        seed = int(hashlib.md5(recipe_name.encode()).hexdigest()[:8], 16)
-        selected_image = fallback_images[seed % len(fallback_images)]
-        
-        # Add Unsplash parameters for proper sizing
-        image_url = f"{selected_image}?w=800&h=600&fit=crop"
-        
+        url, category, confidence = choose_deterministic_image(recipe_name)
         return jsonify({
-            "image_url": image_url,
-            "recipe_name": recipe_name
+            "image_url": url,
+            "recipe_name": recipe_name,
+            "category": category,
+            "confidence": confidence,
+            "source": "curated_strict" if category != 'generic' else "generic"
         })
-        
     except Exception as e:
         print(f"ERROR in get_recipe_image: {str(e)}")
-        # Ultimate fallback with curated food image
-        fallback_url = f"https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=600&fit=crop"
-        return jsonify({"image_url": fallback_url}), 200
+        return jsonify({"image_url": GENERIC_FOOD_IMAGE, "recipe_name": recipe_name, "source": "generic"}), 200
 
 @app.route('/api/chat', methods=['POST'])
 def chat():

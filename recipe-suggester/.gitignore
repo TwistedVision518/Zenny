@@ -42,5 +42,6 @@ next-env.d.ts
 
 # backend data
 backend/ratings_data.json
+backend/image_cache.json
 backend/__pycache__/
 backend/*.pyc
