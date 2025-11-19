@@ -1160,7 +1160,16 @@ export default function Home() {
                               {selectedRecipe.dietType === 'veg' ? '🥬 Vegetarian' : selectedRecipe.dietType === 'vegan' ? '🌱 Vegan' : '🍖 Non-Vegetarian'}
                             </span>
                           )}
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-800/80 border border-gray-700 text-gray-300">🧪 Difficulty: Easy</span>
+                          {selectedRecipe.difficulty && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-800/80 border border-gray-700 text-gray-300">
+                              📊 {selectedRecipe.difficulty}
+                            </span>
+                          )}
+                          {selectedRecipe.cuisine && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-800/80 border border-gray-700 text-gray-300">
+                              🌍 {selectedRecipe.cuisine}
+                            </span>
+                          )}
                         </div>
                         {selectedRecipe.id && (
                           <div className="mt-4 flex items-center gap-4">
@@ -1213,13 +1222,14 @@ export default function Home() {
                     {/* Recipe Scaling and Nutritional Info */}
                     <div className="grid sm:grid-cols-2 gap-4">
                       {/* Servings Scaler */}
-                      {selectedRecipe.servings && (
+                      {selectedRecipe.servings && selectedRecipe.id && (
                         <div className="bg-gray-900/70 border border-gray-800 rounded-xl p-4">
                           <h5 className="text-sm font-semibold text-gray-300 mb-3">🍽️ Servings</h5>
                           <div className="flex items-center gap-3">
                             <button
                               onClick={() => {
-                                const current = scaledServings[selectedRecipe.id!] || selectedRecipe.servings!;
+                                if (!selectedRecipe.id) return;
+                                const current = scaledServings[selectedRecipe.id] || selectedRecipe.servings!;
                                 if (current > 1) {
                                   setScaledServings(prev => ({
                                     ...prev,
@@ -1232,11 +1242,12 @@ export default function Home() {
                               −
                             </button>
                             <span className="text-xl font-bold text-white min-w-[60px] text-center">
-                              {scaledServings[selectedRecipe.id!] || selectedRecipe.servings}
+                              {scaledServings[selectedRecipe.id] || selectedRecipe.servings}
                             </span>
                             <button
                               onClick={() => {
-                                const current = scaledServings[selectedRecipe.id!] || selectedRecipe.servings!;
+                                if (!selectedRecipe.id) return;
+                                const current = scaledServings[selectedRecipe.id] || selectedRecipe.servings!;
                                 setScaledServings(prev => ({
                                   ...prev,
                                   [selectedRecipe.id!]: current + 1
@@ -1246,9 +1257,10 @@ export default function Home() {
                             >
                               +
                             </button>
-                            {scaledServings[selectedRecipe.id!] && scaledServings[selectedRecipe.id!] !== selectedRecipe.servings && (
+                            {scaledServings[selectedRecipe.id] && scaledServings[selectedRecipe.id] !== selectedRecipe.servings && (
                               <button
                                 onClick={() => {
+                                  if (!selectedRecipe.id) return;
                                   setScaledServings(prev => {
                                     const newScaled = { ...prev };
                                     delete newScaled[selectedRecipe.id!];
@@ -1273,7 +1285,7 @@ export default function Home() {
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-400">Calories</span>
                                 <span className="text-sm font-semibold text-blue-400">
-                                  {Math.round(selectedRecipe.calories * (scaledServings[selectedRecipe.id!] || selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))} kcal
+                                  {Math.round(selectedRecipe.calories * (selectedRecipe.id && scaledServings[selectedRecipe.id] ? scaledServings[selectedRecipe.id] : selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))} kcal
                                 </span>
                               </div>
                             )}
@@ -1281,7 +1293,7 @@ export default function Home() {
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-400">Protein</span>
                                 <span className="text-sm font-semibold text-purple-400">
-                                  {Math.round(selectedRecipe.protein * (scaledServings[selectedRecipe.id!] || selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))}g
+                                  {Math.round(selectedRecipe.protein * (selectedRecipe.id && scaledServings[selectedRecipe.id] ? scaledServings[selectedRecipe.id] : selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))}g
                                 </span>
                               </div>
                             )}
@@ -1289,7 +1301,7 @@ export default function Home() {
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-400">Carbs</span>
                                 <span className="text-sm font-semibold text-yellow-400">
-                                  {Math.round(selectedRecipe.carbs * (scaledServings[selectedRecipe.id!] || selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))}g
+                                  {Math.round(selectedRecipe.carbs * (selectedRecipe.id && scaledServings[selectedRecipe.id] ? scaledServings[selectedRecipe.id] : selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))}g
                                 </span>
                               </div>
                             )}
@@ -1297,7 +1309,7 @@ export default function Home() {
                               <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-400">Fats</span>
                                 <span className="text-sm font-semibold text-orange-400">
-                                  {Math.round(selectedRecipe.fats * (scaledServings[selectedRecipe.id!] || selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))}g
+                                  {Math.round(selectedRecipe.fats * (selectedRecipe.id && scaledServings[selectedRecipe.id] ? scaledServings[selectedRecipe.id] : selectedRecipe.servings || 1) / (selectedRecipe.servings || 1))}g
                                 </span>
                               </div>
                             )}
@@ -1313,16 +1325,16 @@ export default function Home() {
                           <h4 className="font-bold text-white mb-4 flex items-center space-x-2 text-lg">
                             <span>🥘</span>
                             <span>Ingredients</span>
-                            {scaledServings[selectedRecipe.id!] && scaledServings[selectedRecipe.id!] !== selectedRecipe.servings && (
+                            {selectedRecipe.id && scaledServings[selectedRecipe.id] && scaledServings[selectedRecipe.id] !== selectedRecipe.servings && (
                               <span className="text-xs text-purple-400 font-normal">
-                                (scaled for {scaledServings[selectedRecipe.id!]} servings)
+                                (scaled for {scaledServings[selectedRecipe.id]} servings)
                               </span>
                             )}
                           </h4>
                           <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
                             {(() => {
-                              const displayRecipe = scaledServings[selectedRecipe.id!] && selectedRecipe.servings
-                                ? scaleRecipe(selectedRecipe, scaledServings[selectedRecipe.id!])
+                              const displayRecipe = selectedRecipe.id && scaledServings[selectedRecipe.id] && selectedRecipe.servings
+                                ? scaleRecipe(selectedRecipe, scaledServings[selectedRecipe.id])
                                 : selectedRecipe;
                               return displayRecipe.ingredients?.map((ing, idx) => (
                                 <li key={idx} className="flex items-start space-x-2 text-gray-300">
