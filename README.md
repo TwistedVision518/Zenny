@@ -1,15 +1,121 @@
-# Zenny - AI Recipe Assistant
+# Zenny - AI Recipe Assistant 🍳
 
-An intelligent web application that suggests recipes based on ingredients you have available in your kitchen. Built with Next.js, Python Flask, and Google Gemini AI.
+> Your intelligent cooking companion powered by Google Gemini AI
 
-## Features
+An advanced web application that transforms your available ingredients into delicious recipes, helps plan your meals, tracks nutrition, and provides personalized cooking advice. Built with Next.js, Python Flask, and Google Gemini 2.0.
 
-- **Smart Recipe Suggestions**: Enter your available ingredients and get personalized recipe recommendations
-- **AI-Powered Chatbot**: Interactive cooking assistant to answer questions about recipes, substitutions, and techniques
-- **Detailed Instructions**: View full recipes with ingredients list, cooking steps, and estimated cooking time
-- **Modern Dark UI**: Sleek, responsive interface with beautiful gradients and glassmorphism effects
+![Zenny Logo](public/logodog.jpg)
 
-## Setup Instructions
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-blue?style=flat&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue?style=flat&logo=python)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-black?style=flat&logo=flask)](https://flask.palletsprojects.com/)
+[![Gemini](https://img.shields.io/badge/Gemini-2.0-orange?style=flat&logo=google)](https://ai.google.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
+
+## 🌟 What Makes Zenny Special?
+
+- 🎯 **Smart AI Recipe Generation** - Get personalized recipes from your ingredients
+- ⭐ **Favorites System** - Save and organize your favorite recipes
+- 📅 **Weekly Meal Planner** - Plan 7 days of meals with automatic shopping lists
+- 💪 **Nutritional Tracking** - View calories, protein, carbs, and fats per serving
+- 🍽️ **Recipe Scaling** - Adjust servings with automatic ingredient recalculation
+- 🔍 **Advanced Filters** - Filter by time, difficulty, cuisine, and diet type
+- 🤖 **AI Chat Assistant** - Get cooking advice and substitution suggestions
+- ⭐ **Community Ratings** - Rate recipes and see what others love
+- 🎨 **Beautiful UI** - Modern dark theme with smooth animations
+- 🚀 **Lightning Fast** - Optimized for speed with progressive image loading
+
+## ✨ Features
+
+### 🔍 **Smart Recipe Discovery**
+- **Ingredient-Based Search**: Enter your available ingredients and get personalized recipe recommendations
+- **Dish Search**: Find variations of specific dishes (e.g., "Pasta Carbonara")
+- **Trending Recipes**: Discover popular recipes from around the world
+- **Deterministic Image System**: Accurate food images using curated Unsplash photos with 24+ categories
+
+### 🤖 **AI-Powered Assistant**
+- **Interactive Chatbot**: Get answers about recipes, substitutions, and cooking techniques
+- **Context-Aware**: Chat remembers your current recipe for relevant suggestions
+- **Real-Time Streaming**: Fast AI responses powered by Gemini 2.0 Flash
+
+### ⭐ **Favorites & Collections**
+- **Save Recipes**: Heart your favorite recipes for quick access
+- **Persistent Storage**: Favorites saved in browser localStorage
+- **Quick View**: Dedicated favorites page with all saved recipes
+
+### 📅 **Meal Planning**
+- **7-Day Calendar**: Plan breakfast, lunch, and dinner for the entire week
+- **Drag & Drop**: Easy recipe assignment to meal slots
+- **Shopping List Generator**: Automatically aggregate ingredients from planned meals
+- **One-Click Copy**: Copy shopping list to clipboard instantly
+
+### 📊 **Advanced Filters**
+- **Time Filter**: Filter by cooking time (15min, 30min, 45min, 1hr+)
+- **Difficulty Filter**: Choose Easy, Medium, or Hard recipes
+- **Cuisine Filter**: Browse by cuisine type (Indian, Italian, Chinese, Mexican, Thai, etc.)
+- **Diet Filters**: Filter by Veg, Non-Veg, or Vegan options
+
+### 🍽️ **Recipe Scaling**
+- **Servings Adjustment**: Scale recipes up or down with +/- buttons
+- **Smart Scaling**: Automatically recalculates ingredient quantities
+- **Nutrition Scaling**: Macros adjust proportionally with servings
+
+### 💪 **Nutritional Information**
+- **Comprehensive Data**: View calories, protein, carbs, and fats per serving
+- **Visual Badges**: Color-coded nutritional info on recipe cards
+- **Detailed Panel**: Full macro breakdown in recipe modal
+
+### ⭐ **Rating System**
+- **5-Star Ratings**: Rate recipes to help others discover great dishes
+- **Average Ratings**: See community ratings with total count
+- **Personal Tracking**: Your ratings are remembered
+
+### 🎨 **Modern UI/UX**
+- **Dark Theme**: Beautiful dark interface with gradients
+- **Glassmorphism**: Modern backdrop blur effects
+- **Smooth Animations**: Hover effects, scale transitions, and loading states
+- **Responsive Design**: Works perfectly on mobile, tablet, and desktop
+- **Gradient Accents**: Signature yellow → pink → purple theme throughout
+
+## 📸 Screenshots
+
+### Main Interface
+- Clean search interface with ingredient and dish search modes
+- Beautiful gradient buttons and dark theme
+- Trending recipes button for quick inspiration
+
+### Recipe Cards
+- Nutritional badges (calories, protein, carbs, fats)
+- Heart icons for favoriting
+- Diet type indicators (Veg/Non-Veg/Vegan)
+- Cooking time and difficulty display
+- Hover animations and gradient effects
+
+### Recipe Modal
+- Large hero image with gradient overlay
+- Servings scaler with +/- buttons
+- Nutrition panel with per-serving macros
+- Ingredient list with scaled quantities
+- Step-by-step instructions
+- Rating system (1-5 stars)
+- YouTube video search integration
+
+### Meal Planner
+- 7-day calendar view with "TODAY" badge
+- Breakfast, lunch, dinner slots per day
+- Custom dropdown styling with animations
+- Shopping list generator
+- Beautiful gradient cards with hover effects
+
+### Favorites
+- Grid view of all saved recipes
+- Quick access to favorite dishes
+- One-click to view full recipe
+- Empty state with helpful message
+
+## 🔧 Setup Instructions
 
 ### Prerequisites
 
@@ -69,34 +175,144 @@ python app.py
 
 The backend will run on http://127.0.0.1:5000
 
-## How to Use
+## 🚀 How to Use
 
-1. **Enter Ingredients**: Type your available ingredients in the input field (comma-separated)
-   - Example: `chicken, rice, tomatoes, garlic, onion`
+### Basic Recipe Search
 
-2. **Get Recipes**: Click the "Get Recipes" button
+1. **Choose Search Mode**:
+   - 🥘 **By Ingredients**: Enter what you have (e.g., `chicken, rice, tomatoes`)
+   - 🍽️ **By Dish**: Search for specific dishes (e.g., `Chicken Biryani`)
 
-3. **View Details**: Click on any recipe card to see the full recipe with ingredients and instructions
+2. **Apply Filters** (Optional):
+   - Select diet type: Veg / Non-Veg / Vegan
+   - After recipes load, use advanced filters for time, difficulty, and cuisine
 
-4. **Ask Questions**: Click the "Chat Assistant" button to ask questions about recipes, ingredient substitutions, or cooking techniques
+3. **Get Recipes**: Click "Get Recipes" and wait for AI-generated suggestions
 
-5. **Try Different Combinations**: Experiment with different ingredient combinations to discover new recipes!
+4. **View Details**: Click any recipe card to see:
+   - Full ingredient list with quantities
+   - Step-by-step instructions
+   - Nutritional information
+   - Adjustable servings
 
-## Technologies Used
+### Advanced Features
 
-- **Frontend**: Next.js 16, React, TypeScript, Tailwind CSS
-- **Backend**: Python Flask, Google Gemini AI
-- **AI**: Gemini 2.0 Flash for recipe generation and chat
+#### ⭐ **Using Favorites**
+1. Click the heart icon (🤍) on any recipe card
+2. Access favorites anytime via the **⭐ Favorites** button at the top
+3. Favorites are saved in your browser automatically
 
-## Notes
+#### 📅 **Meal Planning**
+1. Generate some recipes first
+2. Click **📅 Meal Planner** button
+3. Use dropdowns to assign recipes to meal slots
+4. Click **📋 Generate Shopping List** to get all ingredients
+5. Shopping list is copied to clipboard automatically
 
-- The Gemini API is FREE to use with generous rate limits
-- Make sure both frontend and backend servers are running for the application to work
-- The application requires an active internet connection to communicate with Google's Gemini API
+#### 🍽️ **Scaling Recipes**
+1. Open any recipe modal
+2. Use +/- buttons to adjust servings
+3. Ingredients and nutrition update automatically
+4. Click "Reset" to return to original serving size
 
-## Developer
+#### 💬 **AI Chat Assistant**
+1. Click the **💬 Chat Assistant** button in header
+2. Ask questions about recipes, substitutions, or cooking techniques
+3. Chat remembers context from your current recipe
+4. Get instant AI-powered cooking advice
 
-Built by **TwistedVis518**
+#### ⭐ **Rating Recipes**
+1. Open any recipe modal
+2. Click stars to rate (1-5 stars)
+3. Your rating is saved and contributes to average rating
+4. See community ratings on recipe cards
+
+## 🛠️ Technologies Used
+
+### Frontend
+- **Framework**: Next.js 16 with Turbopack
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS v3 with custom animations
+- **UI Components**: React 19
+- **Markdown**: react-markdown with remark-gfm
+- **Storage**: Browser localStorage for favorites and meal plans
+
+### Backend
+- **Framework**: Python Flask 3.0+
+- **AI Model**: Google Gemini 2.0 Flash Experimental
+- **APIs**: 
+  - Gemini Generative AI
+  - Unsplash (for curated food images)
+- **CORS**: flask-cors for cross-origin requests
+- **Environment**: python-dotenv for configuration
+- **Data Storage**: JSON files (ratings, image cache)
+- **Server**: Gunicorn-ready for production deployment
+
+### Key Features Implementation
+- **Deterministic Images**: Token-based category matching with confidence scoring
+- **Recipe Scaling**: Smart ingredient quantity recalculation
+- **Meal Planning**: Date-based recipe assignment with ingredient aggregation
+- **Nutritional Data**: AI-generated macro estimates per serving
+- **Rating System**: Persistent JSON storage with average calculation
+- **Filters**: Client-side filtering for instant results
+
+## 📊 Performance Optimizations
+
+- **Fast Recipe Loading**: Recipes displayed immediately, images load progressively
+- **Reduced AI Load**: 3 recipes per search (optimized from 5)
+- **Parallel Image Fetching**: Non-blocking image loads
+- **Cached Images**: Deterministic URLs prevent duplicate API calls
+- **Client-Side Filtering**: Instant filter application without backend calls
+
+## 🎨 Design Philosophy
+
+- **Dark Theme**: Easy on the eyes for late-night cooking
+- **Gradient Accents**: Signature yellow → pink → purple branding
+- **Glassmorphism**: Modern backdrop blur effects
+- **Micro-interactions**: Hover states, scale transitions, and smooth animations
+- **Responsive**: Mobile-first design that scales to any screen size
+
+## 📝 Notes
+
+- ✅ The Gemini API is **FREE** to use with generous rate limits
+- ✅ Make sure both frontend and backend servers are running
+- ✅ Requires internet connection for AI API communication
+- ✅ Favorites and meal plans are saved in browser (localStorage)
+- ✅ Recipe ratings are stored in backend JSON file
+- ✅ Images are cached for faster subsequent loads
+
+## 🚀 Deployment
+
+### Netlify (Frontend)
+The Next.js frontend is configured for Netlify deployment with `netlify.toml`.
+
+### Backend Options
+- **Local**: `python app.py` (development)
+- **Gunicorn**: Production-ready WSGI server included
+- **Cloud**: Deploy to Heroku, Railway, or any Python hosting
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to:
+- Report bugs
+- Suggest new features
+- Submit pull requests
+- Improve documentation
+
+## 📄 License
+
+This project is open source and available for educational purposes.
+
+## 👨‍💻 Developer
+
+Built with ❤️ by **TwistedVision518**
+
+- GitHub: [@TwistedVision518](https://github.com/TwistedVision518)
+- Instagram: [@pranavislost](https://www.instagram.com/pranavislost/)
+
+---
+
+**Zenny** - Your AI-powered cooking companion 🍳✨
 
 - GitHub: [TwistedVision518](https://github.com/TwistedVision518)
 - Instagram: [@pranavislost](https://www.instagram.com/pranavislost/)
@@ -114,3 +330,8 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
