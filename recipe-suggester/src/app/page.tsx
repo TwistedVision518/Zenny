@@ -446,9 +446,9 @@ export default function Home() {
               <div className="flex items-center justify-center gap-2 mb-4">
                 <button
                   onClick={() => { setSearchMode("ingredients"); setError(""); setShowTrending(false); }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
                     searchMode === "ingredients" && !showTrending
-                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
+                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg scale-105"
                       : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
                   }`}
                 >
@@ -456,9 +456,9 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => { setSearchMode("dish"); setError(""); setShowTrending(false); }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
                     searchMode === "dish" && !showTrending
-                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
+                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg scale-105"
                       : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
                   }`}
                 >
@@ -466,9 +466,9 @@ export default function Home() {
                 </button>
                 <button
                   onClick={fetchTrendingRecipes}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
                     showTrending
-                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg"
+                      ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg scale-105"
                       : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
                   }`}
                 >
@@ -476,42 +476,40 @@ export default function Home() {
                 </button>
               </div>
               
-              {/* Diet Filter */}
-              {!showTrending && (
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <span className="text-gray-400 text-sm mr-2">Diet:</span>
-                  <button
-                    onClick={() => setDietFilter("all")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      dietFilter === "all"
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md"
-                        : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setDietFilter("veg")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      dietFilter === "veg"
-                        ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md"
-                        : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
-                    }`}
-                  >
-                    🥬 Veg
-                  </button>
-                  <button
-                    onClick={() => setDietFilter("non-veg")}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      dietFilter === "non-veg"
-                        ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md"
-                        : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
-                    }`}
-                  >
-                    🍖 Non-Veg
-                  </button>
-                </div>
-              )}
+              {/* Diet Filter - Always visible */}
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <span className="text-gray-400 text-sm mr-2">Diet:</span>
+                <button
+                  onClick={() => setDietFilter("all")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
+                    dietFilter === "all"
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md scale-105"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setDietFilter("veg")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
+                    dietFilter === "veg"
+                      ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-md scale-105"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  🥬 Veg
+                </button>
+                <button
+                  onClick={() => setDietFilter("non-veg")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
+                    dietFilter === "non-veg"
+                      ? "bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md scale-105"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  🍖 Non-Veg
+                </button>
+              </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
                 <div ref={inputWrapRef} className="relative flex-grow rounded-xl">
@@ -544,7 +542,7 @@ export default function Home() {
                 <button
                   onClick={handleGetRecipes}
                   disabled={loading}
-                  className="px-8 py-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-purple-500/30 hover:shadow-xl whitespace-nowrap"
+                  className="px-8 py-4 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white font-semibold rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-purple-500/30 hover:shadow-xl hover:scale-105 active:scale-95 whitespace-nowrap"
                 >
                   {loading ? (
                     <span className="flex items-center space-x-2">
@@ -725,9 +723,9 @@ export default function Home() {
                                     e.stopPropagation();
                                     if (selectedRecipe.id) handleRateRecipe(selectedRecipe.id, star);
                                   }}
-                                  className={`text-2xl transition-all hover:scale-110 ${
+                                  className={`text-2xl transition-all duration-200 hover:scale-125 active:scale-110 ${
                                     (userRatings[selectedRecipe.id!] || 0) >= star
-                                      ? 'text-yellow-400'
+                                      ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]'
                                       : 'text-gray-600 hover:text-yellow-400/50'
                                   }`}
                                 >
