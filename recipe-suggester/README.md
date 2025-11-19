@@ -1,13 +1,60 @@
-# Zenny - AI Recipe Assistant
+# Zenny - AI Recipe Assistant 🍳
 
 An intelligent web application that suggests recipes based on ingredients you have available in your kitchen. Built with Next.js, Python Flask, and Google Gemini AI.
 
-## Features
+![Zenny Logo](public/logodog.jpg)
 
-- **Smart Recipe Suggestions**: Enter your available ingredients and get personalized recipe recommendations
-- **AI-Powered Chatbot**: Interactive cooking assistant to answer questions about recipes, substitutions, and techniques
-- **Detailed Instructions**: View full recipes with ingredients list, cooking steps, and estimated cooking time
-- **Modern Dark UI**: Sleek, responsive interface with beautiful gradients and glassmorphism effects
+## ✨ Features
+
+### 🔍 **Smart Recipe Discovery**
+- **Ingredient-Based Search**: Enter your available ingredients and get personalized recipe recommendations
+- **Dish Search**: Find variations of specific dishes (e.g., "Pasta Carbonara")
+- **Trending Recipes**: Discover popular recipes from around the world
+- **Deterministic Image System**: Accurate food images using curated Unsplash photos with 24+ categories
+
+### 🤖 **AI-Powered Assistant**
+- **Interactive Chatbot**: Get answers about recipes, substitutions, and cooking techniques
+- **Context-Aware**: Chat remembers your current recipe for relevant suggestions
+- **Real-Time Streaming**: Fast AI responses powered by Gemini 2.0 Flash
+
+### ⭐ **Favorites & Collections**
+- **Save Recipes**: Heart your favorite recipes for quick access
+- **Persistent Storage**: Favorites saved in browser localStorage
+- **Quick View**: Dedicated favorites page with all saved recipes
+
+### 📅 **Meal Planning**
+- **7-Day Calendar**: Plan breakfast, lunch, and dinner for the entire week
+- **Drag & Drop**: Easy recipe assignment to meal slots
+- **Shopping List Generator**: Automatically aggregate ingredients from planned meals
+- **One-Click Copy**: Copy shopping list to clipboard instantly
+
+### 📊 **Advanced Filters**
+- **Time Filter**: Filter by cooking time (15min, 30min, 45min, 1hr+)
+- **Difficulty Filter**: Choose Easy, Medium, or Hard recipes
+- **Cuisine Filter**: Browse by cuisine type (Indian, Italian, Chinese, Mexican, Thai, etc.)
+- **Diet Filters**: Filter by Veg, Non-Veg, or Vegan options
+
+### 🍽️ **Recipe Scaling**
+- **Servings Adjustment**: Scale recipes up or down with +/- buttons
+- **Smart Scaling**: Automatically recalculates ingredient quantities
+- **Nutrition Scaling**: Macros adjust proportionally with servings
+
+### 💪 **Nutritional Information**
+- **Comprehensive Data**: View calories, protein, carbs, and fats per serving
+- **Visual Badges**: Color-coded nutritional info on recipe cards
+- **Detailed Panel**: Full macro breakdown in recipe modal
+
+### ⭐ **Rating System**
+- **5-Star Ratings**: Rate recipes to help others discover great dishes
+- **Average Ratings**: See community ratings with total count
+- **Personal Tracking**: Your ratings are remembered
+
+### 🎨 **Modern UI/UX**
+- **Dark Theme**: Beautiful dark interface with gradients
+- **Glassmorphism**: Modern backdrop blur effects
+- **Smooth Animations**: Hover effects, scale transitions, and loading states
+- **Responsive Design**: Works perfectly on mobile, tablet, and desktop
+- **Gradient Accents**: Signature yellow → pink → purple theme throughout
 
 ## Setup Instructions
 

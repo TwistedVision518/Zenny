@@ -208,7 +208,7 @@ def get_recipes_by_dish():
         # Create a prompt for Gemini to find variations of the dish
         prompt = f"""Given the dish name: "{dish_name}"
 
-Please provide 5 variations or similar recipes for this dish. For each recipe, provide the following information in valid JSON format:
+Please provide 3 variations or similar recipes for this dish. For each recipe, provide the following information in valid JSON format:
 - name: recipe name (include variations like "Classic {dish_name}", "Spicy {dish_name}", etc.)
 - description: brief description highlighting what makes this variation unique (1-2 sentences)
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
@@ -297,7 +297,7 @@ def get_recipes():
         # Create a prompt for Gemini
         prompt = f"""Given these ingredients: {', '.join(ingredients_list)}
 
-Please suggest 5 delicious recipes that can be made using some or all of these ingredients. For each recipe, provide the following information in valid JSON format:
+Please suggest 3 delicious recipes that can be made using some or all of these ingredients. For each recipe, provide the following information in valid JSON format:
 - name: recipe name
 - description: brief description (1-2 sentences)
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
@@ -561,7 +561,7 @@ def get_trending_recipes():
         
         if not sorted_recipes:
             # If no ratings yet, return popular recipes
-            prompt = """Please suggest 8 trending and popular recipes from around the world. For each recipe, provide the following information in valid JSON format:
+            prompt = """Please suggest 6 trending and popular recipes from around the world. For each recipe, provide the following information in valid JSON format:
 - name: recipe name
 - description: brief description highlighting what makes it popular (1-2 sentences)
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
@@ -580,7 +580,7 @@ Return ONLY a valid JSON array of recipe objects, no additional text or markdown
         else:
             # Generate recipes based on top rated ones
             top_names = [recipe_id for recipe_id, _ in sorted_recipes[:3]]
-            prompt = f"""Based on these trending recipes: {', '.join(top_names)}, suggest 8 similar popular recipes. For each recipe, provide the following information in valid JSON format:
+            prompt = f"""Based on these trending recipes: {', '.join(top_names)}, suggest 6 similar popular recipes. For each recipe, provide the following information in valid JSON format:
 - name: recipe name
 - description: brief description (1-2 sentences)
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")

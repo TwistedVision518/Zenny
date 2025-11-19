@@ -296,6 +296,8 @@ export default function Home() {
     setLoading(true);
     setError("");
     setRecipes([]);
+    setShowCollections(false);
+    setShowMealPlanner(false);
     try {
       const endpoint = searchMode === "ingredients" ? `${API_BASE}/api/recipes` : `${API_BASE}/api/recipes/by-dish`;
       const body = searchMode === "ingredients" 
@@ -310,9 +312,12 @@ export default function Home() {
       if (!response.ok) throw new Error("Failed to get recipes");
       const data = await response.json();
       const recipesData = data.recipes || [];
-      setRecipes(recipesData);
       
-      // Fetch images for each recipe in parallel
+      // Show recipes immediately without waiting for images
+      setRecipes(recipesData);
+      setLoading(false);
+      
+      // Fetch images for each recipe in parallel (non-blocking)
       recipesData.forEach(async (recipe: Recipe, index: number) => {
         setImageLoading((prev) => ({ ...prev, [index]: true }));
         const imageUrl = await fetchFoodImage(recipe.name, index);
@@ -325,7 +330,6 @@ export default function Home() {
       });
     } catch (e) {
       setError("Couldn't fetch recipes. Is the backend running?");
-    } finally {
       setLoading(false);
     }
   };
@@ -369,14 +373,19 @@ export default function Home() {
     setLoading(true);
     setError("");
     setShowTrending(true);
+    setShowCollections(false);
+    setShowMealPlanner(false);
     try {
       const response = await fetch(`${API_BASE}/api/recipes/trending`);
       if (!response.ok) throw new Error("Failed to get trending recipes");
       const data = await response.json();
       const recipesData = data.recipes || [];
-      setRecipes(recipesData);
       
-      // Fetch images for each recipe
+      // Show recipes immediately without waiting for images
+      setRecipes(recipesData);
+      setLoading(false);
+      
+      // Fetch images for each recipe in parallel (non-blocking)
       recipesData.forEach(async (recipe: Recipe, index: number) => {
         setImageLoading((prev) => ({ ...prev, [index]: true }));
         const imageUrl = await fetchFoodImage(recipe.name, index);
@@ -389,7 +398,6 @@ export default function Home() {
       });
     } catch (e) {
       setError("Couldn't fetch trending recipes. Is the backend running?");
-    } finally {
       setLoading(false);
     }
   };
@@ -844,7 +852,7 @@ export default function Home() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                       </svg>
-                      <span>Finding...</span>
+                      <span>Cooking up ideas...</span>
                     </span>
                   ) : (
                     <span className="flex items-center space-x-2">
@@ -919,81 +927,130 @@ export default function Home() {
           {/* Meal Planner View */}
           {showMealPlanner && (
             <div className="mt-10 bg-gray-900/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-800">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-3xl font-bold text-white">
-                  📅 <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">Meal Planner</span>
-                </h3>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                <div>
+                  <h3 className="text-4xl font-bold text-white mb-2">
+                    📅 <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">Meal Planner</span>
+                  </h3>
+                  <p className="text-gray-400 text-sm">Plan your week and generate shopping lists automatically</p>
+                </div>
                 {Object.keys(mealPlan).length > 0 && (
                   <button
                     onClick={() => {
                       const list = generateShoppingList();
                       const listText = list.join('\n');
                       navigator.clipboard.writeText(listText);
-                      alert('Shopping list copied to clipboard!');
+                      const totalItems = list.length;
+                      alert(`🛒 Shopping list with ${totalItems} items copied to clipboard!`);
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-lg font-medium hover:opacity-90 transition-all hover:scale-105 active:scale-95"
+                    className="relative group px-6 py-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-xl font-bold shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/50 transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden"
                   >
-                    📋 Generate Shopping List
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span>📋</span>
+                      <span>Generate Shopping List</span>
+                    </span>
+                    <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                   </button>
                 )}
               </div>
               
               {recipes.length === 0 && (
-                <div className="text-center py-12 mb-6">
-                  <div className="text-6xl mb-4">🍽️</div>
-                  <p className="text-gray-400 text-lg mb-2">No recipes to plan yet!</p>
-                  <p className="text-gray-500 text-sm mb-4">
-                    Generate some recipes first, then come back here to plan your week.
-                  </p>
-                  <button
-                    onClick={() => setShowMealPlanner(false)}
-                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all"
-                  >
-                    ← Back to Search
-                  </button>
+                <div className="relative overflow-hidden bg-gradient-to-br from-gray-900/50 to-gray-800/50 backdrop-blur-sm rounded-2xl p-12 border border-gray-700/50 text-center">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-yellow-400/5"></div>
+                  <div className="relative z-10">
+                    <div className="text-7xl mb-6 animate-bounce">🍽️</div>
+                    <h4 className="text-2xl font-bold text-white mb-3">
+                      <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                        No recipes to plan yet!
+                      </span>
+                    </h4>
+                    <p className="text-gray-400 text-base mb-6 max-w-md mx-auto">
+                      Generate some delicious recipes first, then come back here to organize your weekly meal plan.
+                    </p>
+                    <button
+                      onClick={() => setShowMealPlanner(false)}
+                      className="px-6 py-3 bg-gradient-to-r from-gray-800 to-gray-700 hover:from-gray-700 hover:to-gray-600 text-white rounded-xl font-semibold transition-all duration-200 hover:scale-105 active:scale-95 border border-gray-600 shadow-lg flex items-center gap-2 mx-auto"
+                    >
+                      <span>←</span>
+                      <span>Back to Search</span>
+                    </button>
+                  </div>
                 </div>
               )}
               
               {recipes.length > 0 && (
-                <div className="grid gap-6">
+                <div className="grid gap-5">
                 {Array.from({ length: 7 }, (_, i) => {
                   const date = new Date();
                   date.setDate(date.getDate() + i);
                   const dateStr = date.toISOString().split('T')[0];
                   const dayPlan = mealPlan[dateStr];
+                  const isToday = i === 0;
                   
                   return (
-                    <div key={dateStr} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                      <h4 className="text-lg font-semibold text-white mb-3">
-                        {date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                    <div 
+                      key={dateStr} 
+                      className={`relative bg-gray-800/50 backdrop-blur-sm rounded-2xl p-5 border transition-all duration-300 hover:border-purple-500/50 ${
+                        isToday 
+                          ? 'border-purple-500/50 shadow-lg shadow-purple-500/20' 
+                          : 'border-gray-700'
+                      }`}
+                    >
+                      {isToday && (
+                        <div className="absolute -top-3 left-4 px-3 py-1 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white text-xs font-bold rounded-full shadow-lg">
+                          TODAY
+                        </div>
+                      )}
+                      <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <span className="text-2xl">
+                          {['📅', '🗓️', '📆', '📋', '📝', '📌', '📍'][i % 7]}
+                        </span>
+                        <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                          {date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                        </span>
                       </h4>
-                      <div className="grid md:grid-cols-3 gap-3">
-                        {(['breakfast', 'lunch', 'dinner'] as const).map(mealType => (
-                          <div key={mealType} className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
-                            <div className="text-xs text-gray-400 mb-2 uppercase">{mealType}</div>
-                            {dayPlan?.[mealType] ? (
-                              <div className="space-y-2">
-                                <div className="text-sm text-white font-medium line-clamp-2">
-                                  {dayPlan[mealType]!.name}
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => setSelectedRecipe(dayPlan[mealType]!)}
-                                    className="text-xs text-purple-400 hover:text-purple-300"
-                                  >
-                                    View
-                                  </button>
-                                  <button
-                                    onClick={() => removeFromMealPlan(dateStr, mealType)}
-                                    className="text-xs text-red-400 hover:text-red-300"
-                                  >
-                                    Remove
-                                  </button>
-                                </div>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        {(['breakfast', 'lunch', 'dinner'] as const).map(mealType => {
+                          const mealIcons = { breakfast: '🌅', lunch: '☀️', dinner: '🌙' };
+                          return (
+                            <div 
+                              key={mealType} 
+                              className="relative bg-gradient-to-br from-gray-900/70 to-gray-900/50 rounded-xl p-4 border border-gray-700/50 hover:border-purple-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 group"
+                            >
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="text-lg">{mealIcons[mealType]}</span>
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                  {mealType}
+                                </span>
                               </div>
-                            ) : (
-                              <div className="text-xs text-gray-500">
-                                {recipes.length > 0 ? (
+                              {dayPlan?.[mealType] ? (
+                                <div className="space-y-3 animate-in fade-in duration-300">
+                                  <div className="text-sm text-white font-semibold line-clamp-2 group-hover:text-purple-300 transition-colors">
+                                    {dayPlan[mealType]!.name}
+                                  </div>
+                                  {dayPlan[mealType]!.cooking_time && (
+                                    <div className="text-xs text-gray-500 flex items-center gap-1">
+                                      <span>⏱️</span>
+                                      <span>{dayPlan[mealType]!.cooking_time}</span>
+                                    </div>
+                                  )}
+                                  <div className="flex gap-2 pt-2">
+                                    <button
+                                      onClick={() => setSelectedRecipe(dayPlan[mealType]!)}
+                                      className="flex-1 px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-purple-300 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-purple-500/30"
+                                    >
+                                      👁️ View
+                                    </button>
+                                    <button
+                                      onClick={() => removeFromMealPlan(dateStr, mealType)}
+                                      className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs font-medium transition-all duration-200 hover:scale-105 active:scale-95 border border-red-500/30"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="relative">
                                   <select
                                     onChange={(e) => {
                                       const recipe = recipes.find(r => r.id === e.target.value);
@@ -1002,21 +1059,29 @@ export default function Home() {
                                         e.target.value = '';
                                       }
                                     }}
-                                    className="w-full bg-gray-800 border border-gray-600 rounded px-2 py-1 text-gray-300 text-xs"
+                                    className="w-full bg-gray-800/80 border-2 border-gray-700 hover:border-purple-500/50 rounded-lg px-3 py-2.5 text-gray-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200 cursor-pointer appearance-none hover:scale-[1.02] active:scale-95"
                                     defaultValue=""
+                                    style={{
+                                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239CA3AF' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                                      backgroundPosition: 'right 0.5rem center',
+                                      backgroundRepeat: 'no-repeat',
+                                      backgroundSize: '1.5em 1.5em',
+                                      paddingRight: '2.5rem'
+                                    }}
                                   >
-                                    <option value="">+ Add recipe</option>
+                                    <option value="" className="bg-gray-900 text-gray-400">+ Add recipe...</option>
                                     {recipes.map((r, idx) => (
-                                      <option key={idx} value={r.id}>{r.name}</option>
+                                      <option key={idx} value={r.id} className="bg-gray-900 text-white py-2">
+                                        {r.name}
+                                      </option>
                                     ))}
                                   </select>
-                                ) : (
-                                  'No recipes available'
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                                  <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/0 via-pink-500/0 to-yellow-400/0 group-hover:from-purple-500/5 group-hover:via-pink-500/5 group-hover:to-yellow-400/5 pointer-events-none transition-all duration-300"></div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
