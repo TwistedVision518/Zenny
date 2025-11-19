@@ -748,7 +748,7 @@ export default function Home() {
                       <select
                         value={timeFilter}
                         onChange={(e) => setTimeFilter(Number(e.target.value))}
-                        className="px-3 py-2 text-xs bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        className="px-3 py-2 text-xs bg-gray-900/95 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
                         style={{
                           backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                           backgroundPosition: 'right 0.5rem center',
@@ -775,7 +775,7 @@ export default function Home() {
                       <select
                         value={difficultyFilter}
                         onChange={(e) => setDifficultyFilter(e.target.value as "Easy" | "Medium" | "Hard" | "all")}
-                        className="px-3 py-2 text-xs bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        className="px-3 py-2 text-xs bg-gray-900/95 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
                         style={{
                           backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                           backgroundPosition: 'right 0.5rem center',
@@ -800,7 +800,7 @@ export default function Home() {
                       <select
                         value={cuisineFilter}
                         onChange={(e) => setCuisineFilter(e.target.value)}
-                        className="px-3 py-2 text-xs bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        className="px-3 py-2 text-xs bg-gray-900/95 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
                         style={{
                           backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                           backgroundPosition: 'right 0.5rem center',
@@ -1089,7 +1089,7 @@ export default function Home() {
                                         e.target.value = '';
                                       }
                                     }}
-                                    className="w-full bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/70 rounded-xl px-4 py-3 text-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-purple-500/30"
+                                    className="w-full bg-gray-900/95 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/70 rounded-xl px-4 py-3 text-gray-200 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-[1.03] active:scale-95 hover:shadow-lg hover:shadow-purple-500/30"
                                     defaultValue=""
                                     style={{
                                       backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
