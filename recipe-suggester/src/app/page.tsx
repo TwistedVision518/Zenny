@@ -632,6 +632,31 @@ export default function Home() {
             <p className="mt-4 text-xl text-gray-400 max-w-2xl mx-auto">
               {tagline}
             </p>
+            
+            {/* Quick Access Buttons - Always Visible */}
+            <div className="flex items-center justify-center gap-3 mt-8">
+              <button
+                onClick={() => setShowCollections(!showCollections)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                  showCollections
+                    ? 'bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg'
+                    : 'bg-gray-800/60 border border-gray-700 text-gray-300 hover:text-white hover:border-purple-500'
+                }`}
+              >
+                ⭐ Favorites {favorites.size > 0 && `(${favorites.size})`}
+              </button>
+
+              <button
+                onClick={() => setShowMealPlanner(!showMealPlanner)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-2 ${
+                  showMealPlanner
+                    ? 'bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white shadow-lg'
+                    : 'bg-gray-800/60 border border-gray-700 text-gray-300 hover:text-white hover:border-purple-500'
+                }`}
+              >
+                📅 Meal Planner
+              </button>
+            </div>
           </div>
 
           <div className="max-w-3xl mx-auto mb-12">
@@ -850,34 +875,44 @@ export default function Home() {
           )}
 
           {/* Collections/Favorites View */}
-          {showCollections && favorites.size > 0 && (
+          {showCollections && (
             <div className="mt-10 bg-gray-900/50 backdrop-blur-xl rounded-2xl p-8 border border-gray-800">
               <h3 className="text-3xl font-bold text-white mb-6">
                 ⭐ Your <span className="bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">Favorites</span>
               </h3>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {recipes.filter(r => r.id && favorites.has(r.id)).map((recipe, index) => (
-                  <div
-                    key={index}
-                    className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-purple-500 transition-all cursor-pointer"
-                    onClick={() => setSelectedRecipe(recipe)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-lg font-semibold text-white flex-1">{recipe.name}</h4>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(recipe.id!);
-                        }}
-                        className="text-red-500 hover:scale-110 transition-transform"
-                      >
-                        ❤️
-                      </button>
+              {favorites.size > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {recipes.filter(r => r.id && favorites.has(r.id)).map((recipe, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-800/50 rounded-xl p-4 border border-gray-700 hover:border-purple-500 transition-all cursor-pointer"
+                      onClick={() => setSelectedRecipe(recipe)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="text-lg font-semibold text-white flex-1">{recipe.name}</h4>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavorite(recipe.id!);
+                          }}
+                          className="text-red-500 hover:scale-110 transition-transform"
+                        >
+                          ❤️
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-400 line-clamp-2">{recipe.description}</p>
                     </div>
-                    <p className="text-sm text-gray-400 line-clamp-2">{recipe.description}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-6xl mb-4">🤍</div>
+                  <p className="text-gray-400 text-lg mb-2">No favorites yet!</p>
+                  <p className="text-gray-500 text-sm">
+                    Generate recipes and click the heart icon to save your favorites here.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
