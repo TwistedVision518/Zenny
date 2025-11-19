@@ -211,10 +211,17 @@ def get_recipes_by_dish():
 Please provide 5 variations or similar recipes for this dish. For each recipe, provide the following information in valid JSON format:
 - name: recipe name (include variations like "Classic {dish_name}", "Spicy {dish_name}", etc.)
 - description: brief description highlighting what makes this variation unique (1-2 sentences)
-- ingredients: array of main ingredients needed
+- ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
-- cooking_time: estimated cooking time
+- cooking_time: estimated cooking time (e.g., "30 minutes")
 - dietType: one of "veg", "non-veg", or "vegan"
+- servings: number of servings (as a number, e.g., 4)
+- difficulty: one of "Easy", "Medium", or "Hard"
+- cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
+- calories: estimated calories per serving (as a number)
+- protein: estimated protein in grams per serving (as a number)
+- carbs: estimated carbohydrates in grams per serving (as a number)
+- fats: estimated fats in grams per serving (as a number)
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
 
@@ -293,10 +300,17 @@ def get_recipes():
 Please suggest 5 delicious recipes that can be made using some or all of these ingredients. For each recipe, provide the following information in valid JSON format:
 - name: recipe name
 - description: brief description (1-2 sentences)
-- ingredients: array of main ingredients needed
+- ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
-- cooking_time: estimated cooking time
+- cooking_time: estimated cooking time (e.g., "30 minutes")
 - dietType: one of "veg", "non-veg", or "vegan"
+- servings: number of servings (as a number, e.g., 4)
+- difficulty: one of "Easy", "Medium", or "Hard"
+- cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
+- calories: estimated calories per serving (as a number)
+- protein: estimated protein in grams per serving (as a number)
+- carbs: estimated carbohydrates in grams per serving (as a number)
+- fats: estimated fats in grams per serving (as a number)
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
 
@@ -550,10 +564,17 @@ def get_trending_recipes():
             prompt = """Please suggest 8 trending and popular recipes from around the world. For each recipe, provide the following information in valid JSON format:
 - name: recipe name
 - description: brief description highlighting what makes it popular (1-2 sentences)
-- ingredients: array of main ingredients needed
+- ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
-- cooking_time: estimated cooking time
+- cooking_time: estimated cooking time (e.g., "30 minutes")
 - dietType: one of "veg", "non-veg", or "vegan"
+- servings: number of servings (as a number, e.g., 4)
+- difficulty: one of "Easy", "Medium", or "Hard"
+- cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
+- calories: estimated calories per serving (as a number)
+- protein: estimated protein in grams per serving (as a number)
+- carbs: estimated carbohydrates in grams per serving (as a number)
+- fats: estimated fats in grams per serving (as a number)
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
         else:
@@ -562,10 +583,17 @@ Return ONLY a valid JSON array of recipe objects, no additional text or markdown
             prompt = f"""Based on these trending recipes: {', '.join(top_names)}, suggest 8 similar popular recipes. For each recipe, provide the following information in valid JSON format:
 - name: recipe name
 - description: brief description (1-2 sentences)
-- ingredients: array of main ingredients needed
+- ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
-- cooking_time: estimated cooking time
+- cooking_time: estimated cooking time (e.g., "30 minutes")
 - dietType: one of "veg", "non-veg", or "vegan"
+- servings: number of servings (as a number, e.g., 4)
+- difficulty: one of "Easy", "Medium", or "Hard"
+- cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
+- calories: estimated calories per serving (as a number)
+- protein: estimated protein in grams per serving (as a number)
+- carbs: estimated carbohydrates in grams per serving (as a number)
+- fats: estimated fats in grams per serving (as a number)
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
         
