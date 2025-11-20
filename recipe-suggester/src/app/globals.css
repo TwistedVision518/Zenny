@@ -371,4 +371,17 @@
   input:focus, textarea:focus, select:focus {
     transform: none !important;
   }
+  
+  /* Prevent button double-tap issues */
+  button {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Optimize expensive operations */
+  button:disabled {
+    pointer-events: none;
+    opacity: 0.5 !important;
+  }
 }
