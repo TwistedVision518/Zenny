@@ -1744,9 +1744,9 @@ export default function Home() {
           )}
 
           {selectedRecipe && (
-            <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-xl">
-              <div className="relative bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 p-[2px] rounded-3xl shadow-[0_0_40px_-10px_rgba(236,72,153,0.45)] w-full max-w-4xl">
-                <div className="relative rounded-3xl bg-gray-950/95 border border-gray-800/80 overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-4 z-50 backdrop-blur-xl overflow-y-auto">
+              <div className="relative bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 p-[2px] rounded-3xl shadow-[0_0_40px_-10px_rgba(236,72,153,0.45)] w-full max-w-4xl my-8">
+                <div className="relative rounded-3xl bg-gray-950/95 border border-gray-800/80 overflow-hidden flex flex-col max-h-[85vh]">
                   {/* Hero Image Section */}
                   {selectedRecipe.imageUrl && (
                     <div className="relative w-full h-64 sm:h-80 overflow-hidden">
@@ -1845,7 +1845,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="px-8 pb-8 overflow-y-auto overflow-x-hidden space-y-10" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
+                  <div className="flex-1 px-8 pb-8 overflow-y-auto overflow-x-hidden space-y-10 min-h-0" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
                     <p className="text-gray-400 text-lg leading-relaxed max-w-3xl">
                       {selectedRecipe.description}
                     </p>
