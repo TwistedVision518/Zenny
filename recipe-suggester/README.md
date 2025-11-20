@@ -14,7 +14,17 @@ An advanced web application that transforms your available ingredients into deli
 [![Gemini](https://img.shields.io/badge/Gemini-2.0-orange?style=flat&logo=google)](https://ai.google.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38B2AC?style=flat&logo=tailwind-css)](https://tailwindcss.com/)
 
-## 🌟 What Makes Zenny Special?
+## � What’s New
+
+- 🎯 Auto‑plan your week to calorie/macro goals
+- 🥫 Pantry manager with pantry‑aware recipe prioritization
+- 💰 Cost per serving on cards + Budget filter and Budget Mode
+- 🔁 Smart ingredient substitutions with one‑tap apply/reset (used in shopping list)
+- 🗺️ Region selector (US/EU/IN) for cost estimates and currency display
+- 📰 "What’s New" strip on the homepage with quick actions
+- 🆚 Ingredient swap comparison: "Original" vs "Your list"
+
+## �🌟 What Makes Zenny Special?
 
 - 🎯 **Smart AI Recipe Generation** - Get personalized recipes from your ingredients
 - ⭐ **Favorites System** - Save and organize your favorite recipes
@@ -26,6 +36,10 @@ An advanced web application that transforms your available ingredients into deli
 - ⭐ **Community Ratings** - Rate recipes and see what others love
 - 🎨 **Beautiful UI** - Modern dark theme with smooth animations
 - 🚀 **Lightning Fast** - Optimized for speed with progressive image loading
+ - 🥫 **Pantry‑Aware Suggestions** - Prioritize recipes that use what you already have
+ - 💰 **Cost‑Aware Cooking** - See $/serving, filter by budget, and prefer cheaper swaps
+ - 🔁 **Smart Substitutions** - One‑tap ingredient swaps with reasons and reset
+ - 🎯 **Goal‑Based Planning** - Auto‑fill the week to hit your calories/macros
 
 ## ✨ Features
 
@@ -50,12 +64,14 @@ An advanced web application that transforms your available ingredients into deli
 - **Drag & Drop**: Easy recipe assignment to meal slots
 - **Shopping List Generator**: Automatically aggregate ingredients from planned meals
 - **One-Click Copy**: Copy shopping list to clipboard instantly
+ - **Auto‑Plan to Goals**: Fill the week targeting your daily calories/macros
 
 ### 📊 **Advanced Filters**
 - **Time Filter**: Filter by cooking time (15min, 30min, 45min, 1hr+)
 - **Difficulty Filter**: Choose Easy, Medium, or Hard recipes
 - **Cuisine Filter**: Browse by cuisine type (Indian, Italian, Chinese, Mexican, Thai, etc.)
 - **Diet Filters**: Filter by Veg, Non-Veg, or Vegan options
+ - **Budget Filter**: Any, or under $2/$5/$8/$12 per serving
 
 ### 🍽️ **Recipe Scaling**
 - **Servings Adjustment**: Scale recipes up or down with +/- buttons
@@ -79,7 +95,24 @@ An advanced web application that transforms your available ingredients into deli
 - **Responsive Design**: Works perfectly on mobile, tablet, and desktop
 - **Gradient Accents**: Signature yellow → pink → purple theme throughout
 
-## 📸 Screenshots
+### 🥫 Pantry‑Aware Cooking
+- Add pantry items (onions, rice, milk, etc.) and the app prioritizes recipes that use them.
+- Pantry items are excluded from shopping lists.
+- Toggle “📦 Prioritize Pantry” to sort by pantry match.
+
+### 💰 Cost‑Aware Cooking
+- Each recipe shows a rough “$X.XX per serving” estimate.
+- Filter results by budget and enable “� Budget Mode” to prefer cheaper substitutions in the shopping list.
+- Uses a lightweight keyword price map (tunable/region‑aware in future).
+ - Choose your region (US/EU/IN) to adjust costs and currency symbol.
+
+### 🔁 Smart Ingredient Substitutions
+- In the recipe modal, ingredients offer one‑tap “Swap → …” suggestions.
+- Reasons are provided; cheaper swaps are highlighted in green.
+- Applied swaps persist during the session and feed into the shopping list.
+ - Toggle “Compare swaps” to view side‑by‑side: Original vs Your list.
+
+## �📸 Screenshots
 
 ### Main Interface
 - Clean search interface with ingredient and dish search modes
@@ -98,6 +131,7 @@ An advanced web application that transforms your available ingredients into deli
 - Servings scaler with +/- buttons
 - Nutrition panel with per-serving macros
 - Ingredient list with scaled quantities
+- Pantry indicators and one‑tap swaps on ingredients
 - Step-by-step instructions
 - Rating system (1-5 stars)
 - YouTube video search integration
@@ -107,7 +141,9 @@ An advanced web application that transforms your available ingredients into deli
 - Breakfast, lunch, dinner slots per day
 - Custom dropdown styling with animations
 - Shopping list generator
+- Goals panel with Auto‑Fill button
 - Beautiful gradient cards with hover effects
+ - Ingredient swaps are reflected in the shopping list; pantry items are auto‑excluded
 
 ### Favorites
 - Grid view of all saved recipes
@@ -208,6 +244,7 @@ The backend will run on http://127.0.0.1:5000
 3. Use dropdowns to assign recipes to meal slots
 4. Click **📋 Generate Shopping List** to get all ingredients
 5. Shopping list is copied to clipboard automatically
+ 6. Set daily calories/macros and click **⚡ Auto‑Fill Week to Goals** to populate the plan
 
 #### 🍽️ **Scaling Recipes**
 1. Open any recipe modal
@@ -226,6 +263,24 @@ The backend will run on http://127.0.0.1:5000
 2. Click stars to rate (1-5 stars)
 3. Your rating is saved and contributes to average rating
 4. See community ratings on recipe cards
+
+#### 🥫 **Using the Pantry**
+1. Click **🥫 Pantry** in the filters row.
+2. Add items like `onion, rice` and close the panel.
+3. Toggle **📦 Prioritize Pantry** to sort recipes by pantry match.
+4. Shopping lists automatically skip items that are already in your pantry.
+
+#### 💰 **Budget & Cost**
+1. Choose a **💸 Budget** filter (e.g., Under $5/serv).
+2. Toggle **💰 Budget Mode** to prefer cheaper substitutions in the shopping list.
+3. See per‑serving cost on recipe cards, with region‑specific currency.
+4. Switch **🗺️ Region** in the filters to adjust estimates.
+
+#### 🔁 **Ingredient Swaps**
+1. Open a recipe modal and scroll to Ingredients.
+2. Tap a “Swap → …” chip to apply; tap Reset to undo.
+3. Toggle **Compare swaps** to see Original vs Your list.
+4. Applied swaps are reflected in your shopping list.
 
 ## 🛠️ Technologies Used
 

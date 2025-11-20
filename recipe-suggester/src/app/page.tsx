@@ -106,11 +106,39 @@ export default function Home() {
   // Use env-based API base so we can deploy frontend separately (e.g., Netlify) and point to remote Flask backend.
   const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
+  // Pantry, Budget and Goals (MVP for ideas #2, #3, #4)
+  const [pantryItems, setPantryItems] = useState<string[]>([]);
+  const [pantryInput, setPantryInput] = useState("");
+  const [showPantryManager, setShowPantryManager] = useState(false);
+  const [prioritizePantry, setPrioritizePantry] = useState(true);
+
+  const [budgetFilter, setBudgetFilter] = useState<"any" | 2 | 5 | 8 | 12>("any");
+  const [budgetMode, setBudgetMode] = useState(false); // prefer cheaper swaps in shopping list
+
+  const [goals, setGoals] = useState<{ calories?: number; protein?: number; carbs?: number; fats?: number }>({ calories: 2000 });
+
+  // Track applied ingredient swaps per recipe (recipeId -> {index -> newText})
+  const [appliedSwaps, setAppliedSwaps] = useState<Record<string, Record<number, string>>>({});
+
+  // Region-aware pricing and UI niceties
+  const [region, setRegion] = useState<'US'|'EU'|'IN'>('US');
+  const currencySymbol = (r: 'US'|'EU'|'IN') => r === 'EU' ? '€' : r === 'IN' ? '₹' : '$';
+  const regionFactor = (r: 'US'|'EU'|'IN') => r === 'EU' ? 1.1 : r === 'IN' ? 0.4 : 1;
+  const [showWhatsNew, setShowWhatsNew] = useState(true);
+  const [showSwapCompare, setShowSwapCompare] = useState(false);
+
   // Load favorites and collections from localStorage on mount
   useEffect(() => {
     const savedFavorites = localStorage.getItem('zenny_favorites');
     const savedCollections = localStorage.getItem('zenny_collections');
     const savedMealPlan = localStorage.getItem('zenny_meal_plan');
+    const savedPantry = localStorage.getItem('zenny_pantry');
+    const savedPrioritize = localStorage.getItem('zenny_prioritize_pantry');
+    const savedBudget = localStorage.getItem('zenny_budget_filter');
+    const savedBudgetMode = localStorage.getItem('zenny_budget_mode');
+    const savedGoals = localStorage.getItem('zenny_goals');
+  const savedRegion = localStorage.getItem('zenny_region');
+  const savedShowNew = localStorage.getItem('zenny_show_new');
     
     if (savedFavorites) {
       setFavorites(new Set(JSON.parse(savedFavorites)));
@@ -121,6 +149,13 @@ export default function Home() {
     if (savedMealPlan) {
       setMealPlan(JSON.parse(savedMealPlan));
     }
+    if (savedPantry) setPantryItems(JSON.parse(savedPantry));
+    if (savedPrioritize) setPrioritizePantry(savedPrioritize === 'true');
+    if (savedBudget) setBudgetFilter(JSON.parse(savedBudget));
+    if (savedBudgetMode) setBudgetMode(savedBudgetMode === 'true');
+    if (savedGoals) setGoals(JSON.parse(savedGoals));
+    if (savedRegion) setRegion(savedRegion as any);
+    if (savedShowNew) setShowWhatsNew(savedShowNew === 'true');
   }, []);
 
   // Save to localStorage when favorites, collections, or meal plan changes
@@ -135,6 +170,32 @@ export default function Home() {
   useEffect(() => {
     localStorage.setItem('zenny_meal_plan', JSON.stringify(mealPlan));
   }, [mealPlan]);
+
+  // Persist pantry/budget/goals
+  useEffect(() => {
+    localStorage.setItem('zenny_pantry', JSON.stringify(pantryItems));
+  }, [pantryItems]);
+
+  useEffect(() => {
+    localStorage.setItem('zenny_prioritize_pantry', prioritizePantry ? 'true' : 'false');
+  }, [prioritizePantry]);
+
+  useEffect(() => {
+    localStorage.setItem('zenny_budget_filter', JSON.stringify(budgetFilter));
+    localStorage.setItem('zenny_budget_mode', budgetMode ? 'true' : 'false');
+  }, [budgetFilter, budgetMode]);
+
+  useEffect(() => {
+    localStorage.setItem('zenny_goals', JSON.stringify(goals));
+  }, [goals]);
+
+  useEffect(() => {
+    localStorage.setItem('zenny_region', region);
+  }, [region]);
+
+  useEffect(() => {
+    localStorage.setItem('zenny_show_new', showWhatsNew ? 'true' : 'false');
+  }, [showWhatsNew]);
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -237,16 +298,148 @@ export default function Home() {
 
   // Generate shopping list from meal plan
   const generateShoppingList = (): string[] => {
-    const allIngredients: string[] = [];
+    const all: string[] = [];
+    const shouldCheapen = budgetMode;
+
     Object.values(mealPlan).forEach(day => {
       [day.breakfast, day.lunch, day.dinner].forEach(recipe => {
-        if (recipe?.ingredients) {
-          allIngredients.push(...recipe.ingredients);
-        }
+        if (!recipe?.ingredients) return;
+        const list = recipe.ingredients.map((ing, idx) => {
+          // Apply any user swaps
+          const swapped = recipe.id && appliedSwaps[recipe.id] && appliedSwaps[recipe.id][idx]
+            ? appliedSwaps[recipe.id][idx]
+            : ing;
+          // If budget mode, apply cheapest suggestion if available
+          const cheapest = shouldCheapen ? cheapestSubstitution(swapped) : null;
+          return cheapest?.to || swapped;
+        });
+        all.push(...list);
       });
     });
-    // Remove duplicates (basic version - could be smarter)
-    return Array.from(new Set(allIngredients));
+    // Exclude pantry items (keyword contains)
+    const filtered = all.filter(item => {
+      const lower = item.toLowerCase();
+      return !pantryItems.some(p => lower.includes(p.toLowerCase()));
+    });
+    // Deduplicate roughly
+    return Array.from(new Set(filtered));
+  };
+
+  // --- Cost estimation & substitutions helpers ---
+  const BASE_PRICE_MAP: { key: string; price: number }[] = [
+    { key: 'chicken', price: 4.0 },
+    { key: 'beef', price: 5.5 },
+    { key: 'pork', price: 4.5 },
+    { key: 'fish', price: 5.0 },
+    { key: 'egg', price: 0.5 },
+    { key: 'rice', price: 0.5 },
+    { key: 'pasta', price: 0.8 },
+    { key: 'tomato', price: 0.6 },
+    { key: 'onion', price: 0.3 },
+    { key: 'garlic', price: 0.2 },
+    { key: 'milk', price: 0.4 },
+    { key: 'cream', price: 1.2 },
+    { key: 'cheese', price: 1.5 },
+    { key: 'yogurt', price: 0.9 },
+    { key: 'butter', price: 1.0 },
+    { key: 'olive oil', price: 0.8 },
+    { key: 'flour', price: 0.4 },
+    { key: 'sugar', price: 0.3 },
+    { key: 'potato', price: 0.5 },
+    { key: 'bell pepper', price: 0.7 },
+  ];
+
+  const estimateCost = (recipe: Recipe) => {
+    const base = recipe.ingredients || [];
+    let total = 0;
+    const PRICE_MAP = BASE_PRICE_MAP.map(p => ({ key: p.key, price: Number((p.price * regionFactor(region)).toFixed(2)) }));
+    base.forEach((ing) => {
+      const lower = ing.toLowerCase();
+      const hit = PRICE_MAP.find(p => lower.includes(p.key));
+      total += hit ? hit.price : 0.75; // default fallback
+    });
+    const servings = recipe.servings || 2;
+    return { total: Number(total.toFixed(2)), perServing: Number((total / servings).toFixed(2)) };
+  };
+
+  type SubSuggestion = { to: string; reason: string; cheaper?: boolean };
+  const SUB_RULES: { match: string; suggestions: SubSuggestion[] }[] = [
+    { match: 'basil', suggestions: [{ to: 'parsley', reason: 'similar herb profile', cheaper: true }] },
+    { match: 'heavy cream', suggestions: [{ to: 'milk + butter', reason: 'common home substitute', cheaper: true }] },
+    { match: 'greek yogurt', suggestions: [{ to: 'plain yogurt', reason: 'near equivalent', cheaper: true }] },
+    { match: 'chicken breast', suggestions: [{ to: 'chicken thigh', reason: 'juicier & often cheaper', cheaper: true }] },
+    { match: 'brown sugar', suggestions: [{ to: 'white sugar + molasses', reason: 'classic swap', cheaper: true }] },
+    { match: 'olive oil', suggestions: [{ to: 'vegetable oil', reason: 'budget friendly', cheaper: true }] },
+    { match: 'beef', suggestions: [{ to: 'ground turkey', reason: 'leaner & cheaper', cheaper: true }] },
+  ];
+
+  const substitutionsFor = (ingredient: string): SubSuggestion[] => {
+    const lower = ingredient.toLowerCase();
+    for (const rule of SUB_RULES) {
+      if (lower.includes(rule.match)) return rule.suggestions;
+    }
+    return [];
+  };
+
+  const cheapestSubstitution = (ingredient: string): SubSuggestion | null => {
+    const list = substitutionsFor(ingredient).filter(s => s.cheaper);
+    return list.length ? list[0] : null;
+  };
+
+  const pantryMatchScore = (recipe: Recipe): number => {
+    if (!recipe.ingredients || pantryItems.length === 0) return 0;
+    const ingr = recipe.ingredients.map(i => i.toLowerCase());
+    let hits = 0;
+    pantryItems.forEach(p => {
+      const token = p.toLowerCase();
+      if (ingr.some(i => i.includes(token))) hits += 1;
+    });
+    return hits;
+  };
+
+  const autoPlanToGoals = () => {
+    if (recipes.length === 0) {
+      alert('Generate some recipes first, then try auto-plan.');
+      return;
+    }
+    const dailyCalories = goals.calories || 1800;
+    const perMeal = dailyCalories / 3;
+    const used: Record<string, number> = {};
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      return d.toISOString().split('T')[0];
+    });
+
+    const pick = () => {
+      // Score recipes by closeness to target kcal and pantry usage; penalize repeats
+      const scored = recipes.map(r => {
+        const kcal = r.calories || perMeal;
+        const macrosPenalty =
+          (goals.protein ? Math.abs((r.protein || goals.protein) - goals.protein) : 0) +
+          (goals.carbs ? Math.abs((r.carbs || goals.carbs) - goals.carbs) * 0.5 : 0) +
+          (goals.fats ? Math.abs((r.fats || goals.fats) - goals.fats) * 0.7 : 0);
+        const cost = estimateCost(r).perServing;
+        const repeatPenalty = (used[r.id || r.name] || 0) * 200; // discourage repeats
+        const pantryBonus = prioritizePantry ? -10 * pantryMatchScore(r) : 0; // better score if more pantry
+        return { r, score: Math.abs(kcal - perMeal) + macrosPenalty + repeatPenalty + pantryBonus + (budgetMode ? cost : 0) };
+      }).sort((a, b) => a.score - b.score);
+      const chosen = scored[0]?.r || recipes[0];
+      const key = chosen.id || chosen.name;
+      used[key] = (used[key] || 0) + 1;
+      return chosen;
+    };
+
+    const newPlan: MealPlan = {};
+    days.forEach(dateStr => {
+      newPlan[dateStr] = {
+        breakfast: pick(),
+        lunch: pick(),
+        dinner: pick(),
+      };
+    });
+    setMealPlan(newPlan);
+    alert('Meal plan filled for the week based on your goals.');
   };
 
   // Fetch food image via backend to avoid CORS
@@ -417,8 +610,17 @@ export default function Home() {
     
     // Cuisine filter
     if (cuisineFilter !== "all" && recipe.cuisine !== cuisineFilter) return false;
+    // Budget filter (per serving)
+    if (budgetFilter !== "any") {
+      const cps = estimateCost(recipe).perServing;
+      if (cps > (budgetFilter as number)) return false;
+    }
     
     return true;
+  }).sort((a, b) => {
+    // If prioritizing pantry, sort by pantry match desc
+    if (prioritizePantry) return pantryMatchScore(b) - pantryMatchScore(a);
+    return 0;
   });
 
   const handleSendMessage = async () => {
@@ -576,6 +778,47 @@ export default function Home() {
                   </span>
                 </Link>
               </div>
+
+              {/* Goals-based Auto Planner */}
+              <div className="mb-6 bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                <div className="flex flex-col md:flex-row gap-4 md:items-end">
+                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Daily Calories</label>
+                      <input type="number" min={800} max={4000} value={goals.calories ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, calories: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Protein (g)</label>
+                      <input type="number" min={0} value={goals.protein ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, protein: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Carbs (g)</label>
+                      <input type="number" min={0} value={goals.carbs ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, carbs: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Fats (g)</label>
+                      <input type="number" min={0} value={goals.fats ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, fats: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={autoPlanToGoals}
+                      className="px-5 py-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+                    >
+                      ⚡ Auto‑Fill Week to Goals
+                    </button>
+                    <div className="text-xs text-gray-400">Uses your generated recipes</div>
+                  </div>
+                </div>
+              </div>
               <div className="flex items-center space-x-4">
                 <div className="hidden sm:flex items-center space-x-3">
                   <a
@@ -702,6 +945,18 @@ export default function Home() {
                   🔥 Trending
                 </button>
               </div>
+
+              {/* What's New Strip */}
+              {showWhatsNew && (
+                <div className="mb-4 p-3 rounded-xl border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-yellow-400/10 text-[13px] text-gray-200 flex items-center gap-3 flex-wrap">
+                  <strong className="mr-1">What’s new:</strong>
+                  <button onClick={() => setShowPantryManager(true)} className="px-2 py-0.5 rounded-full bg-gray-900/60 border border-gray-700 hover:border-purple-500/60 transition">🥫 Pantry</button>
+                  <button onClick={() => setShowMealPlanner(true)} className="px-2 py-0.5 rounded-full bg-gray-900/60 border border-gray-700 hover:border-purple-500/60 transition">🎯 Auto‑Plan</button>
+                  <span>💰 Budget filter + $/serving</span>
+                  <span>🔁 Ingredient swaps</span>
+                  <button onClick={() => setShowWhatsNew(false)} className="ml-auto text-gray-400 hover:text-white">Dismiss ✕</button>
+                </div>
+              )}
               
               {/* Diet Filter - Always visible */}
               <div className="flex items-center justify-center gap-2 mb-4">
@@ -825,6 +1080,76 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* Region Selector */}
+                  <div className="flex items-center gap-2 group">
+                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">🗺️ Region:</span>
+                    <div className="relative">
+                      <select
+                        value={region}
+                        onChange={(e) => setRegion(e.target.value as any)}
+                        className="px-3 py-2 text-xs bg-gray-900/95 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 0.5rem center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '1.2em 1.2em',
+                          paddingRight: '2.2rem'
+                        }}
+                      >
+                        <option value="US" className="bg-gray-900 text-gray-200">US</option>
+                        <option value="EU" className="bg-gray-900 text-gray-200">EU</option>
+                        <option value="IN" className="bg-gray-900 text-gray-200">IN</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Budget Filter */}
+                  <div className="flex items-center gap-2 group">
+                    <span className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors">💸 Budget:</span>
+                    <div className="relative">
+                      <select
+                        value={budgetFilter as any}
+                        onChange={(e) => setBudgetFilter((e.target.value as any) === 'any' ? 'any' : Number(e.target.value) as 2|5|8|12)}
+                        className="px-3 py-2 text-xs bg-gray-900/95 backdrop-blur-sm border-2 border-gray-700 hover:border-purple-500/60 rounded-xl text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 cursor-pointer appearance-none hover:scale-105 active:scale-95 hover:shadow-lg hover:shadow-purple-500/20"
+                        style={{
+                          backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23A78BFA' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                          backgroundPosition: 'right 0.5rem center',
+                          backgroundRepeat: 'no-repeat',
+                          backgroundSize: '1.2em 1.2em',
+                          paddingRight: '2.2rem'
+                        }}
+                      >
+                        <option value="any" className="bg-gray-900 text-gray-200">Any</option>
+                        <option value={2} className="bg-gray-900 text-gray-200">Under $2/serv</option>
+                        <option value={5} className="bg-gray-900 text-gray-200">Under $5/serv</option>
+                        <option value={8} className="bg-gray-900 text-gray-200">Under $8/serv</option>
+                        <option value={12} className="bg-gray-900 text-gray-200">Under $12/serv</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Pantry controls */}
+                  <button
+                    onClick={() => setShowPantryManager(v => !v)}
+                    className={`px-3 py-1 text-xs rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 border ${showPantryManager ? 'bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white border-transparent' : 'bg-gray-800/60 text-gray-300 border-gray-700 hover:text-white hover:border-purple-500'}`}
+                  >
+                    🥫 Pantry
+                  </button>
+                  <button
+                    onClick={() => setBudgetMode(b => !b)}
+                    className={`px-3 py-1 text-xs rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 border ${budgetMode ? 'bg-green-600/80 text-white border-transparent' : 'bg-gray-800/60 text-gray-300 border-gray-700 hover:text-white hover:border-purple-500'}`}
+                    title="Prefer cheaper substitutions in shopping list"
+                  >
+                    💰 Budget Mode
+                  </button>
+                  <button
+                    onClick={() => setPrioritizePantry(p => !p)}
+                    className={`px-3 py-1 text-xs rounded-lg transition-all duration-200 hover:scale-105 active:scale-95 border ${prioritizePantry ? 'bg-blue-600/80 text-white border-transparent' : 'bg-gray-800/60 text-gray-300 border-gray-700 hover:text-white hover:border-purple-500'}`}
+                    title="Sort results by how much they use your pantry"
+                  >
+                    📦 Prioritize Pantry
+                  </button>
+
                   {/* Favorites Toggle */}
                   <button
                     onClick={() => setShowCollections(!showCollections)}
@@ -842,7 +1167,49 @@ export default function Home() {
                   </button>
                 </div>
               )}
-              
+
+              {showPantryManager && (
+                <div className="mt-3 mb-2 bg-gray-900/60 border border-gray-800 rounded-xl p-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <input
+                      value={pantryInput}
+                      onChange={(e) => setPantryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && pantryInput.trim()) {
+                          setPantryItems(prev => Array.from(new Set([...prev, ...pantryInput.split(',').map(s => s.trim()).filter(Boolean)])));
+                          setPantryInput('');
+                        }
+                      }}
+                      placeholder="Add pantry items, comma-separated (e.g., onions, rice)"
+                      className="flex-1 min-w-[220px] px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button
+                      onClick={() => {
+                        if (!pantryInput.trim()) return;
+                        setPantryItems(prev => Array.from(new Set([...prev, ...pantryInput.split(',').map(s => s.trim()).filter(Boolean)])));
+                        setPantryInput('');
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-lg text-sm font-semibold hover:scale-105 active:scale-95 transition"
+                    >
+                      Add
+                    </button>
+                    {pantryItems.length > 0 && (
+                      <span className="text-xs text-gray-400 ml-auto">{pantryItems.length} item(s)</span>
+                    )}
+                  </div>
+                  {pantryItems.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {pantryItems.map((item, idx) => (
+                        <span key={idx} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs bg-gray-800/70 border border-gray-700 text-gray-200">
+                          <span>🥫 {item}</span>
+                          <button onClick={() => setPantryItems(p => p.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-white">✕</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <div ref={inputWrapRef} className="relative flex-grow rounded-xl">
                   <input
@@ -1218,6 +1585,19 @@ export default function Home() {
                           )}
                         </div>
                       )}
+                      {/* Cost & Pantry match */}
+                      {recipe.ingredients && (
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-medium">
+                            💵 {currencySymbol(region)}{estimateCost(recipe).perServing.toFixed(2)}/serv
+                          </span>
+                          {pantryItems.length > 0 && (
+                            <span className="text-xs text-gray-400">
+                              🥫 Pantry match: {pantryMatchScore(recipe)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3 flex-wrap">
@@ -1479,17 +1859,88 @@ export default function Home() {
                               </span>
                             )}
                           </h4>
-                          <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <label className="text-xs text-gray-400 flex items-center gap-2">
+                                <input type="checkbox" className="accent-purple-500" checked={showSwapCompare} onChange={(e)=>setShowSwapCompare(e.target.checked)} />
+                                Compare swaps
+                              </label>
+                            </div>
+                            <div className="text-xs text-gray-400">{selectedRecipe.servings ? `Servings: ${selectedRecipe.servings}` : ''}</div>
+                          </div>
+                          <ul className={showSwapCompare ? "grid sm:grid-cols-2 gap-x-8 gap-y-3" : "grid sm:grid-cols-2 gap-x-8 gap-y-3"}>
                             {(() => {
                               const displayRecipe = selectedRecipe.id && scaledServings[selectedRecipe.id] && selectedRecipe.servings
                                 ? scaleRecipe(selectedRecipe, scaledServings[selectedRecipe.id])
                                 : selectedRecipe;
-                              return displayRecipe.ingredients?.map((ing, idx) => (
-                                <li key={idx} className="flex items-start space-x-2 text-gray-300">
-                                  <span className="mt-1 w-2 h-2 rounded-full bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 ring-2 ring-gray-900/50"></span>
-                                  <span>{ing}</span>
-                                </li>
-                              ));
+                              return displayRecipe.ingredients?.map((ing, idx) => {
+                                const ingredientText = selectedRecipe?.id && appliedSwaps[selectedRecipe.id]?.[idx]
+                                  ? appliedSwaps[selectedRecipe.id]![idx]
+                                  : ing;
+                                const inPantry = pantryItems.some(p => ingredientText.toLowerCase().includes(p.toLowerCase()));
+                                const suggestions = substitutionsFor(ingredientText);
+                                return (
+                                  <li key={idx} className="text-gray-300">
+                                    {showSwapCompare ? (
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div className="text-gray-400 text-sm">
+                                          <div className="text-[11px] uppercase tracking-wide text-gray-500">Original</div>
+                                          <div className="mt-0.5">{ing}</div>
+                                        </div>
+                                        <div className="text-gray-200 text-sm">
+                                          <div className="text-[11px] uppercase tracking-wide text-gray-500">Your list</div>
+                                          <div className="mt-0.5 flex items-center gap-2">
+                                            <span>{ingredientText}</span>
+                                            {inPantry && (
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-green-600/20 text-green-300 border border-green-600/30">In pantry</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-start gap-2">
+                                        <span className="mt-1 w-2 h-2 rounded-full bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 ring-2 ring-gray-900/50"></span>
+                                        <span className="flex-1">
+                                          {ingredientText}
+                                          {inPantry && (
+                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-green-600/20 text-green-300 border border-green-600/30">In pantry</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {suggestions.length > 0 && (
+                                      <div className="pl-4 mt-1 flex flex-wrap gap-2">
+                                        {suggestions.slice(0,2).map((s, i) => (
+                                          <button key={i} onClick={() => {
+                                            if (!selectedRecipe?.id) return;
+                                            setAppliedSwaps(prev => ({
+                                              ...prev,
+                                              [selectedRecipe.id!]: { ...(prev[selectedRecipe.id!]||{}), [idx]: s.to }
+                                            }));
+                                          }}
+                                          className={`text-[11px] px-2.5 py-1 rounded-full border transition ${s.cheaper ? 'border-green-600/40 text-green-300 bg-green-600/10 hover:bg-green-600/20' : 'border-purple-600/40 text-purple-300 bg-purple-600/10 hover:bg-purple-600/20'}`}
+                                          title={s.reason}
+                                          >
+                                            Swap → {s.to}
+                                          </button>
+                                        ))}
+                                        {selectedRecipe?.id && appliedSwaps[selectedRecipe.id]?.[idx] && (
+                                          <button onClick={() => {
+                                            if (!selectedRecipe?.id) return;
+                                            setAppliedSwaps(prev => {
+                                              const map = { ...(prev[selectedRecipe.id!]||{}) };
+                                              delete map[idx];
+                                              return { ...prev, [selectedRecipe.id!]: map };
+                                            });
+                                          }} className="text-[11px] px-2.5 py-1 rounded-full border border-gray-600/50 text-gray-300 hover:bg-gray-700/40">
+                                            Reset
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </li>
+                                );
+                              });
                             })()}
                           </ul>
                         </div>
