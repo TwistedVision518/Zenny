@@ -408,72 +408,64 @@ export default function Home() {
     return hits;
   };
 
-  const autoPlanToGoals = async () => {
+  const autoPlanToGoals = () => {
     if (recipes.length === 0) {
       alert('Generate some recipes first, then try auto-plan.');
       return;
     }
     
-    // Show loading state
+    // Show loading state immediately
     setLoading(true);
     
-    // Use setTimeout to allow UI to update
-    await new Promise(resolve => setTimeout(resolve, 10));
-    
-    try {
-      const dailyCalories = goals.calories || 1800;
-      const perMeal = dailyCalories / 3;
-      const used: Record<string, number> = {};
-      const days = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() + i);
-        return d.toISOString().split('T')[0];
-      });
+    // Use setTimeout to defer computation and allow UI to update
+    setTimeout(() => {
+      try {
+        const dailyCalories = goals.calories || 1800;
+        const perMeal = dailyCalories / 3;
+        const used: Record<string, number> = {};
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() + i);
+          return d.toISOString().split('T')[0];
+        });
 
-      const pick = () => {
-        // Score recipes by closeness to target kcal and pantry usage; penalize repeats
-        const scored = recipes.map(r => {
-          const kcal = r.calories || perMeal;
-          const macrosPenalty =
-            (goals.protein ? Math.abs((r.protein || goals.protein) - goals.protein) : 0) +
-            (goals.carbs ? Math.abs((r.carbs || goals.carbs) - goals.carbs) * 0.5 : 0) +
-            (goals.fats ? Math.abs((r.fats || goals.fats) - goals.fats) * 0.7 : 0);
-          const cost = estimateCost(r).perServing;
-          const repeatPenalty = (used[r.id || r.name] || 0) * 200; // discourage repeats
-          const pantryBonus = prioritizePantry ? -10 * pantryMatchScore(r) : 0; // better score if more pantry
-          return { r, score: Math.abs(kcal - perMeal) + macrosPenalty + repeatPenalty + pantryBonus + (budgetMode ? cost : 0) };
-        }).sort((a, b) => a.score - b.score);
-        const chosen = scored[0]?.r || recipes[0];
-        const key = chosen.id || chosen.name;
-        used[key] = (used[key] || 0) + 1;
-        return chosen;
-      };
-
-      const newPlan: MealPlan = {};
-      
-      // Process in smaller chunks to prevent UI freeze
-      for (let i = 0; i < days.length; i++) {
-        const dateStr = days[i];
-        newPlan[dateStr] = {
-          breakfast: pick(),
-          lunch: pick(),
-          dinner: pick(),
+        const pick = () => {
+          // Score recipes by closeness to target kcal and pantry usage; penalize repeats
+          const scored = recipes.map(r => {
+            const kcal = r.calories || perMeal;
+            const macrosPenalty =
+              (goals.protein ? Math.abs((r.protein || goals.protein) - goals.protein) : 0) +
+              (goals.carbs ? Math.abs((r.carbs || goals.carbs) - goals.carbs) * 0.5 : 0) +
+              (goals.fats ? Math.abs((r.fats || goals.fats) - goals.fats) * 0.7 : 0);
+            const cost = estimateCost(r).perServing;
+            const repeatPenalty = (used[r.id || r.name] || 0) * 200; // discourage repeats
+            const pantryBonus = prioritizePantry ? -10 * pantryMatchScore(r) : 0; // better score if more pantry
+            return { r, score: Math.abs(kcal - perMeal) + macrosPenalty + repeatPenalty + pantryBonus + (budgetMode ? cost : 0) };
+          }).sort((a, b) => a.score - b.score);
+          const chosen = scored[0]?.r || recipes[0];
+          const key = chosen.id || chosen.name;
+          used[key] = (used[key] || 0) + 1;
+          return chosen;
         };
+
+        const newPlan: MealPlan = {};
+        days.forEach(dateStr => {
+          newPlan[dateStr] = {
+            breakfast: pick(),
+            lunch: pick(),
+            dinner: pick(),
+          };
+        });
         
-        // Allow UI to breathe every 2 days
-        if (i % 2 === 1) {
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
+        setMealPlan(newPlan);
+        setLoading(false);
+        alert('✅ Meal plan filled for the week based on your goals!');
+      } catch (error) {
+        console.error('Error auto-planning:', error);
+        setLoading(false);
+        alert('❌ Failed to auto-plan. Please try again.');
       }
-      
-      setMealPlan(newPlan);
-      alert('✅ Meal plan filled for the week based on your goals!');
-    } catch (error) {
-      console.error('Error auto-planning:', error);
-      alert('❌ Failed to auto-plan. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    }, 100); // Small delay to let UI update with loading state
   };
 
   // Optimize image fetching with useCallback
