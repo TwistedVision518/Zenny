@@ -188,7 +188,7 @@ if not api_key or api_key == 'your_api_key_here':
     model = None
 else:
     genai.configure(api_key=api_key)
-    # Use faster generation config for quicker responses
+    # Use stable model with optimized config to avoid rate limits
     generation_config = {
         "temperature": 0.9,
         "top_p": 0.95,
@@ -196,10 +196,33 @@ else:
         "max_output_tokens": 2048,
     }
     model = genai.GenerativeModel(
-        'gemini-2.0-flash-exp',
+        'gemini-2.0-flash-thinking-exp-1219',
         generation_config=generation_config
     )
     print("✅ Gemini client initialized successfully with optimized config!")
+
+# Helper function to call Gemini with retry logic
+def generate_with_retry(prompt, max_retries=3):
+    """Generate content with exponential backoff retry on rate limits"""
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            return response
+        except Exception as e:
+            error_str = str(e)
+            if "quota" in error_str.lower() or "rate" in error_str.lower():
+                if attempt < max_retries - 1:
+                    # Extract retry delay from error message if available
+                    wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                    print(f"⚠️  Rate limit hit. Retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                else:
+                    print(f"❌ Rate limit exceeded after {max_retries} attempts")
+                    raise Exception("API rate limit exceeded. Please try again in a minute.")
+            else:
+                # Non-rate-limit error, don't retry
+                raise e
+    raise Exception("Failed to generate content after retries")
 
 @app.route('/api/recipes/by-dish', methods=['POST'])
 def get_recipes_by_dish():
@@ -236,7 +259,7 @@ Please provide 3 variations or similar recipes for this dish. For each recipe, p
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
 
         print("Calling Gemini API for dish search...")
-        response = model.generate_content(prompt)
+        response = generate_with_retry(prompt)
         
         print("Received response from Gemini")
         recipes_text = response.text
@@ -325,7 +348,7 @@ Please suggest 3 delicious recipes that can be made using some or all of these i
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
 
         print("Calling Gemini API...")
-        response = model.generate_content(prompt)
+        response = generate_with_retry(prompt)
         
         print("Received response from Gemini")
         recipes_text = response.text
@@ -399,7 +422,7 @@ Please suggest:
 
 Provide a clear, concise response."""
 
-        response = model.generate_content(prompt)
+        response = generate_with_retry(prompt)
         substitution_advice = response.text
         return jsonify({"advice": substitution_advice})
 
@@ -485,7 +508,7 @@ User question: {message}
 
 Provide a helpful, concise, and friendly response. If discussing substitutions, be specific about quantities and how it might affect the dish."""
 
-        response = model.generate_content(prompt)
+        response = generate_with_retry(prompt)
         bot_response = response.text
         return jsonify({"response": bot_response})
 
@@ -607,7 +630,7 @@ Return ONLY a valid JSON array of recipe objects, no additional text or markdown
 
 Return ONLY a valid JSON array of recipe objects, no additional text or markdown formatting."""
         
-        response = model.generate_content(prompt)
+        response = generate_with_retry(prompt)
         recipes_text = response.text
         
         # Clean up the response
@@ -682,8 +705,21 @@ Provide a helpful, concise, and friendly response. If discussing substitutions, 
         try:
             print(f"[STREAM] Starting stream for message: {message[:50]}...")
             chunk_count = 0
-            # Gemini streaming interface
-            response_stream = model.generate_content(prompt, stream=True)
+            # Gemini streaming interface with retry
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response_stream = model.generate_content(prompt, stream=True)
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1 and ("quota" in str(e).lower() or "rate" in str(e).lower()):
+                        wait_time = 2 ** attempt
+                        print(f"⚠️  Rate limit in stream. Retrying in {wait_time}s...")
+                        time.sleep(wait_time)
+                    else:
+                        yield f"data: {json.dumps({'error': 'Rate limit exceeded. Please try again in a minute.'})}\n\n"
+                        return
+            
             for chunk in response_stream:
                 try:
                     # Access text from chunk parts
