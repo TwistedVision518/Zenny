@@ -7,6 +7,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Zenny - AI Recipe Suggester",
   description: "Get personalized recipe suggestions based on ingredients you have",
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+  },
+  themeColor: '#000000',
   icons: {
     icon: [
       { url: '/logodog.jpg?v=3', type: 'image/jpeg', sizes: '32x32' },

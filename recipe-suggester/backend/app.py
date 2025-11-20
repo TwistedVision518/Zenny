@@ -188,18 +188,18 @@ if not api_key or api_key == 'your_api_key_here':
     model = None
 else:
     genai.configure(api_key=api_key)
-    # Use stable model with optimized config to avoid rate limits
+    # Use best model for Paid Tier 1 - Gemini 2.0 Flash Thinking
     generation_config = {
-        "temperature": 0.9,
+        "temperature": 1.0,  # Higher for more creative recipes
         "top_p": 0.95,
         "top_k": 40,
-        "max_output_tokens": 2048,
+        "max_output_tokens": 8192,  # Increased for paid tier
     }
     model = genai.GenerativeModel(
         'gemini-2.0-flash-thinking-exp-1219',
         generation_config=generation_config
     )
-    print("✅ Gemini client initialized successfully with optimized config!")
+    print("✅ Gemini 2.0 Flash Thinking (Paid Tier) initialized successfully!")
 
 # Helper function to call Gemini with retry logic
 def generate_with_retry(prompt, max_retries=3):
@@ -751,6 +751,15 @@ Provide a helpful, concise, and friendly response. If discussing substitutions, 
             yield 'data: ' + json.dumps({"error": f"Streaming failed: {str(e)}"}) + '\n\n'
 
     return Response(event_stream(), mimetype='text/event-stream')
+
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Simple health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "message": "Backend is running!",
+        "gemini_configured": model is not None
+    })
 
 if __name__ == '__main__':
     app.run(debug=True)

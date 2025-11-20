@@ -52,10 +52,12 @@ An advanced web application that transforms your available ingredients into deli
 - **One-Click Copy**: Copy shopping list to clipboard instantly
 
 ### 📊 **Advanced Filters**
-- **Time Filter**: Filter by cooking time (15min, 30min, 45min, 1hr+)
+- **Time Filter**: Filter by cooking time (15min, 30min, 45min, 1hr+, 2hr+)
 - **Difficulty Filter**: Choose Easy, Medium, or Hard recipes
-- **Cuisine Filter**: Browse by cuisine type (Indian, Italian, Chinese, Mexican, Thai, etc.)
-- **Diet Filters**: Filter by Veg, Non-Veg, or Vegan options
+- **Cuisine Filter**: Browse by cuisine type (Indian, Italian, Chinese, Mexican, Thai, American, Mediterranean, Japanese, French, Korean)
+- **Diet Filters**: Filter by Veg, Non-Veg, Vegan, or Egg options
+- **Budget Filter**: Filter by cost per serving with region-aware pricing
+- **Region Selection**: Choose US ($), EU (€), or IN (₹) for localized pricing
 
 ### 🍽️ **Recipe Scaling**
 - **Servings Adjustment**: Scale recipes up or down with +/- buttons
@@ -239,13 +241,14 @@ The backend will run on http://127.0.0.1:5000
 
 ### Backend
 - **Framework**: Python Flask 3.0+
-- **AI Model**: Google Gemini 2.0 Flash Experimental
+- **AI Model**: Google Gemini 2.0 Flash Thinking (Paid Tier 1) - `gemini-2.0-flash-thinking-exp-1219`
 - **APIs**: 
   - Gemini Generative AI
   - Unsplash (for curated food images)
 - **CORS**: flask-cors for cross-origin requests
 - **Environment**: python-dotenv for configuration
 - **Data Storage**: JSON files (ratings, image cache)
+- **Rate Limiting**: Exponential backoff retry logic (1s → 2s → 4s, 3 max retries)
 - **Server**: Gunicorn-ready for production deployment
 
 ### Key Features Implementation
@@ -255,14 +258,26 @@ The backend will run on http://127.0.0.1:5000
 - **Nutritional Data**: AI-generated macro estimates per serving
 - **Rating System**: Persistent JSON storage with average calculation
 - **Filters**: Client-side filtering for instant results
+- **Regional Pricing**: Budget filter adapts to US ($), EU (€), and IN (₹) with purchasing power parity
+- **Cost Estimation**: Real-time cost calculation based on ingredient prices and regional factors
 
 ## 📊 Performance Optimizations
 
-- **Fast Recipe Loading**: Recipes displayed immediately, images load progressively
-- **Reduced AI Load**: 3 recipes per search (optimized from 5)
-- **Parallel Image Fetching**: Non-blocking image loads
-- **Cached Images**: Deterministic URLs prevent duplicate API calls
+### Frontend
+- **React Memoization**: `useMemo` for expensive filters, `useCallback` for functions
+- **Lazy Image Loading**: Images load in batches of 6 with 100ms delays
+- **GPU Acceleration**: CSS transforms with `will-change` and `translateZ(0)`
+- **Mobile Optimization**: Animations disabled on mobile devices for better performance
+- **Reduced Motion Support**: Respects user's prefers-reduced-motion setting
 - **Client-Side Filtering**: Instant filter application without backend calls
+- **Cached Images**: Deterministic URLs prevent duplicate API calls
+
+### Backend
+- **Rate Limit Handling**: Exponential backoff prevents API quota exhaustion
+- **Efficient Prompting**: Optimized prompts for faster AI responses
+- **Image Caching**: Food images cached in `image_cache.json`
+- **Health Check Endpoint**: `/api/health` for connectivity testing
+- **Streaming Support**: Real-time streaming for chat responses
 
 ## 🎨 Design Philosophy
 
@@ -272,14 +287,41 @@ The backend will run on http://127.0.0.1:5000
 - **Micro-interactions**: Hover states, scale transitions, and smooth animations
 - **Responsive**: Mobile-first design that scales to any screen size
 
+## 🆕 Recent Updates (November 2025)
+
+### Currency Conversion & Regional Pricing ✅
+- **Budget Filter**: Now shows region-appropriate amounts
+  - US: $2.00, $5.00, $8.00, $12.00
+  - EU: €2.20, €5.50, €8.80, €13.20
+  - IN: ₹0.80, ₹2.00, ₹3.20, ₹4.80
+- **Smart Comparison**: Budget thresholds automatically adjust by region factor for accurate filtering
+- **Cost Display**: All recipe costs show in local currency with proper conversion
+
+### Gemini 2.0 Upgrade 🚀
+- **Model**: Upgraded to `gemini-2.0-flash-thinking-exp-1219` (Paid Tier 1)
+- **Performance**: 1,000+ requests/minute (vs 15/min on free tier)
+- **Quality**: Better recipe generation with advanced reasoning capabilities
+
+### Error Handling Improvements 🛠️
+- **Rate Limit Detection**: Clear messaging when API rate limits are reached
+- **Exponential Backoff**: Automatic retries (1s → 2s → 4s) for failed requests
+- **Connection Errors**: Better error differentiation for debugging
+
+### New Features 🎉
+- **Egg Diet Category**: Separate category for egg-based dishes (previously grouped with veg)
+- **Mobile Optimizations**: Disabled heavy animations on mobile for better performance
+- **GPU Acceleration**: Smooth animations using hardware acceleration
+- **Health Check Endpoint**: `/api/health` for backend connectivity testing
+
 ## 📝 Notes
 
-- ✅ The Gemini API is **FREE** to use with generous rate limits
+- ✅ Currently using Gemini Paid Tier 1 (1,000+ requests/minute)
 - ✅ Make sure both frontend and backend servers are running
 - ✅ Requires internet connection for AI API communication
 - ✅ Favorites and meal plans are saved in browser (localStorage)
 - ✅ Recipe ratings are stored in backend JSON file
 - ✅ Images are cached for faster subsequent loads
+- ✅ Budget filter adapts to your selected region automatically
 
 ## 🚀 Deployment
 

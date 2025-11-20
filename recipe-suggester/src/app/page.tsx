@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -86,7 +86,7 @@ export default function Home() {
   // Recipe scaling
   const [scaledServings, setScaledServings] = useState<Record<string, number>>({});
   
-  const [tagline] = useState(() => cookingTaglines[Math.floor(Math.random() * cookingTaglines.length)]);
+  const [tagline, setTagline] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const inputWrapRef = useRef<HTMLDivElement>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -124,11 +124,22 @@ export default function Home() {
   const [region, setRegion] = useState<'US'|'EU'|'IN'>('US');
   const currencySymbol = (r: 'US'|'EU'|'IN') => r === 'EU' ? '€' : r === 'IN' ? '₹' : '$';
   const regionFactor = (r: 'US'|'EU'|'IN') => r === 'EU' ? 1.1 : r === 'IN' ? 0.4 : 1;
+  
+  // Convert USD budget values to region-appropriate display amounts
+  // Uses exchange rates for display, while regionFactor affects actual cost calculation
+  const convertBudgetDisplay = (usdAmount: number, r: 'US'|'EU'|'IN'): string => {
+    if (r === 'EU') return (usdAmount * 0.92).toFixed(1); // USD to EUR (~0.92)
+    if (r === 'IN') return Math.round(usdAmount * 83).toString(); // USD to INR (~83)
+    return usdAmount.toFixed(2); // US stays in USD
+  };
   const [showWhatsNew, setShowWhatsNew] = useState(true);
   const [showSwapCompare, setShowSwapCompare] = useState(false);
 
   // Load favorites and collections from localStorage on mount
   useEffect(() => {
+    // Set tagline only on client side to avoid hydration mismatch
+    setTagline(cookingTaglines[Math.floor(Math.random() * cookingTaglines.length)]);
+    
     const savedFavorites = localStorage.getItem('zenny_favorites');
     const savedCollections = localStorage.getItem('zenny_collections');
     const savedMealPlan = localStorage.getItem('zenny_meal_plan');
@@ -442,8 +453,8 @@ export default function Home() {
     alert('Meal plan filled for the week based on your goals.');
   };
 
-  // Fetch food image via backend to avoid CORS
-  const fetchFoodImage = async (recipeName: string, index: number): Promise<string> => {
+  // Optimize image fetching with useCallback
+  const fetchFoodImage = useCallback(async (recipeName: string, index: number): Promise<string> => {
     try {
       const response = await fetch(`${API_BASE}/api/recipe-image`, {
         method: 'POST',
@@ -460,7 +471,7 @@ export default function Home() {
       // Ultimate fallback
       return `https://picsum.photos/seed/fallback-${index}/800/600`;
     }
-  };
+  }, [API_BASE]);
 
   const clearIngredients = () => {
     setIngredients("");
@@ -502,27 +513,59 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!response.ok) throw new Error("Failed to get recipes");
+      
       const data = await response.json();
+      
+      // Check for API errors
+      if (data.error) {
+        if (data.error.includes("rate limit") || data.error.includes("quota")) {
+          setError("⏰ API rate limit reached. Please wait a minute and try again.");
+        } else {
+          setError(data.error);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      if (!response.ok) throw new Error("Failed to get recipes");
       const recipesData = data.recipes || [];
       
       // Show recipes immediately without waiting for images
       setRecipes(recipesData);
       setLoading(false);
       
-      // Fetch images for each recipe in parallel (non-blocking)
-      recipesData.forEach(async (recipe: Recipe, index: number) => {
-        setImageLoading((prev) => ({ ...prev, [index]: true }));
-        const imageUrl = await fetchFoodImage(recipe.name, index);
-        setRecipes((prevRecipes) => {
-          const updated = [...prevRecipes];
-          if (updated[index]) updated[index] = { ...updated[index], imageUrl };
-          return updated;
-        });
-        setImageLoading((prev) => ({ ...prev, [index]: false }));
-      });
+      // Lazy load images - only load first 6, rest on demand
+      const loadImagesInBatches = async () => {
+        const batchSize = 6;
+        for (let i = 0; i < recipesData.length; i += batchSize) {
+          const batch = recipesData.slice(i, i + batchSize);
+          await Promise.all(
+            batch.map(async (recipe: Recipe, batchIndex: number) => {
+              const index = i + batchIndex;
+              setImageLoading((prev) => ({ ...prev, [index]: true }));
+              const imageUrl = await fetchFoodImage(recipe.name, index);
+              setRecipes((prevRecipes) => {
+                const updated = [...prevRecipes];
+                if (updated[index]) updated[index] = { ...updated[index], imageUrl };
+                return updated;
+              });
+              setImageLoading((prev) => ({ ...prev, [index]: false }));
+            })
+          );
+          // Small delay between batches to avoid overwhelming the system
+          if (i + batchSize < recipesData.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+        }
+      };
+      loadImagesInBatches();
     } catch (e) {
-      setError("Couldn't fetch recipes. Is the backend running?");
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      if (errorMsg.includes("fetch")) {
+        setError("❌ Can't connect to backend. Make sure it's running on port 5000.");
+      } else {
+        setError("⚠️ Something went wrong. Please try again.");
+      }
       setLoading(false);
     }
   };
@@ -595,33 +638,38 @@ export default function Home() {
     }
   };
 
-  const filteredRecipes = recipes.filter((recipe) => {
-    // Diet filter
-    if (dietFilter !== "all" && recipe.dietType !== dietFilter) return false;
-    
-    // Time filter (cooking time in minutes)
-    if (timeFilter < 120) {
-      const cookingTime = parseInt(recipe.cooking_time?.match(/\d+/)?.[0] || "999");
-      if (cookingTime > timeFilter) return false;
-    }
-    
-    // Difficulty filter
-    if (difficultyFilter !== "all" && recipe.difficulty !== difficultyFilter) return false;
-    
-    // Cuisine filter
-    if (cuisineFilter !== "all" && recipe.cuisine !== cuisineFilter) return false;
-    // Budget filter (per serving)
-    if (budgetFilter !== "any") {
-      const cps = estimateCost(recipe).perServing;
-      if (cps > (budgetFilter as number)) return false;
-    }
-    
-    return true;
-  }).sort((a, b) => {
-    // If prioritizing pantry, sort by pantry match desc
-    if (prioritizePantry) return pantryMatchScore(b) - pantryMatchScore(a);
-    return 0;
-  });
+  // Optimize recipe filtering with useMemo
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter((recipe) => {
+      // Diet filter
+      if (dietFilter !== "all" && recipe.dietType !== dietFilter) return false;
+      
+      // Time filter (cooking time in minutes)
+      if (timeFilter < 120) {
+        const cookingTime = parseInt(recipe.cooking_time?.match(/\d+/)?.[0] || "999");
+        if (cookingTime > timeFilter) return false;
+      }
+      
+      // Difficulty filter
+      if (difficultyFilter !== "all" && recipe.difficulty !== difficultyFilter) return false;
+      
+      // Cuisine filter
+      if (cuisineFilter !== "all" && recipe.cuisine !== cuisineFilter) return false;
+      // Budget filter (per serving)
+      if (budgetFilter !== "any") {
+        const cps = estimateCost(recipe).perServing;
+        // Adjust budget threshold by region factor to match region-adjusted costs
+        const adjustedBudget = (budgetFilter as number) * regionFactor(region);
+        if (cps > adjustedBudget) return false;
+      }
+      
+      return true;
+    }).sort((a, b) => {
+      // If prioritizing pantry, sort by pantry match desc
+      if (prioritizePantry) return pantryMatchScore(b) - pantryMatchScore(a);
+      return 0;
+    });
+  }, [recipes, dietFilter, timeFilter, difficultyFilter, cuisineFilter, budgetFilter, prioritizePantry]);
 
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
@@ -1090,10 +1138,10 @@ export default function Home() {
                         }}
                       >
                         <option value="any" className="bg-gray-900 text-gray-200">Any</option>
-                        <option value={2} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}2/serv</option>
-                        <option value={5} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}5/serv</option>
-                        <option value={8} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}8/serv</option>
-                        <option value={12} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}12/serv</option>
+                        <option value={2} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}{convertBudgetDisplay(2, region)}/serv</option>
+                        <option value={5} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}{convertBudgetDisplay(5, region)}/serv</option>
+                        <option value={8} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}{convertBudgetDisplay(8, region)}/serv</option>
+                        <option value={12} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}{convertBudgetDisplay(12, region)}/serv</option>
                       </select>
                     </div>
                   </div>

@@ -6,6 +6,30 @@
   body {
     background: #000;
     overflow-x: hidden;
+    /* Improve mobile performance */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Optimize for mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
@@ -52,6 +76,17 @@
   opacity: 0.12;
   z-index: 0;
   pointer-events: none;
+  /* Use GPU acceleration */
+  will-change: background-position;
+  transform: translateZ(0);
+}
+
+/* Disable heavy animations on mobile for better performance */
+@media (max-width: 768px) {
+  .animated-gradient-bg {
+    animation: none;
+    background-size: 200% 200%;
+  }
 }
 
 .animated-orbs {
@@ -71,6 +106,17 @@
   filter: blur(80px);
   opacity: 0.3;
   animation: float 15s ease-in-out infinite;
+  /* Use GPU acceleration */
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Disable orb animations on mobile */
+@media (max-width: 768px) {
+  .orb {
+    animation: none;
+    filter: blur(40px);
+  }
 }
 
 .orb-1 {
