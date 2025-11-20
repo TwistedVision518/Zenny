@@ -12,7 +12,7 @@ interface Recipe {
   steps?: string[];
   cooking_time?: string;
   imageUrl?: string;
-  dietType?: "veg" | "non-veg" | "vegan";
+  dietType?: "veg" | "non-veg" | "vegan" | "egg";
   id?: string;
   averageRating?: number;
   totalRatings?: number;
@@ -65,7 +65,7 @@ export default function Home() {
 
   const [ingredients, setIngredients] = useState("");
   const [searchMode, setSearchMode] = useState<"ingredients" | "dish">("ingredients");
-  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non-veg">("all");
+  const [dietFilter, setDietFilter] = useState<"all" | "veg" | "non-veg" | "egg">("all");
   const [showTrending, setShowTrending] = useState(false);
   const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   
@@ -942,6 +942,16 @@ export default function Home() {
                   🥬 Veg
                 </button>
                 <button
+                  onClick={() => setDietFilter("egg")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
+                    dietFilter === "egg"
+                      ? "bg-gradient-to-r from-yellow-500 to-amber-500 text-white shadow-md scale-105"
+                      : "bg-gray-800/60 text-gray-400 hover:text-gray-200 border border-gray-700"
+                  }`}
+                >
+                  🥚 Egg
+                </button>
+                <button
                   onClick={() => setDietFilter("non-veg")}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-95 hover:scale-105 ${
                     dietFilter === "non-veg"
@@ -1080,10 +1090,10 @@ export default function Home() {
                         }}
                       >
                         <option value="any" className="bg-gray-900 text-gray-200">Any</option>
-                        <option value={2} className="bg-gray-900 text-gray-200">Under $2/serv</option>
-                        <option value={5} className="bg-gray-900 text-gray-200">Under $5/serv</option>
-                        <option value={8} className="bg-gray-900 text-gray-200">Under $8/serv</option>
-                        <option value={12} className="bg-gray-900 text-gray-200">Under $12/serv</option>
+                        <option value={2} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}2/serv</option>
+                        <option value={5} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}5/serv</option>
+                        <option value={8} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}8/serv</option>
+                        <option value={12} className="bg-gray-900 text-gray-200">Under {currencySymbol(region)}12/serv</option>
                       </select>
                     </div>
                   </div>
@@ -1536,9 +1546,10 @@ export default function Home() {
                             <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                               recipe.dietType === 'veg' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
                               recipe.dietType === 'vegan' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                              recipe.dietType === 'egg' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
                               'bg-red-500/20 text-red-400 border border-red-500/30'
                             }`}>
-                              {recipe.dietType === 'veg' ? '🥬 Veg' : recipe.dietType === 'vegan' ? '🌱 Vegan' : '🍖 Non-Veg'}
+                              {recipe.dietType === 'veg' ? '🥬 Veg' : recipe.dietType === 'vegan' ? '🌱 Vegan' : recipe.dietType === 'egg' ? '🥚 Egg' : '🍖 Non-Veg'}
                             </span>
                           )}
                           {recipe.id && (
@@ -1684,9 +1695,10 @@ export default function Home() {
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                               selectedRecipe.dietType === 'veg' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
                               selectedRecipe.dietType === 'vegan' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                              selectedRecipe.dietType === 'egg' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
                               'bg-red-500/20 text-red-400 border border-red-500/30'
                             }`}>
-                              {selectedRecipe.dietType === 'veg' ? '🥬 Vegetarian' : selectedRecipe.dietType === 'vegan' ? '🌱 Vegan' : '🍖 Non-Vegetarian'}
+                              {selectedRecipe.dietType === 'veg' ? '🥬 Vegetarian' : selectedRecipe.dietType === 'vegan' ? '🌱 Vegan' : selectedRecipe.dietType === 'egg' ? '🥚 Egg' : '🍖 Non-Vegetarian'}
                             </span>
                           )}
                           {selectedRecipe.difficulty && (

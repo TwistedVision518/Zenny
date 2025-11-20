@@ -188,8 +188,18 @@ if not api_key or api_key == 'your_api_key_here':
     model = None
 else:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.0-flash')
-    print("✅ Gemini client initialized successfully!")
+    # Use faster generation config for quicker responses
+    generation_config = {
+        "temperature": 0.9,
+        "top_p": 0.95,
+        "top_k": 40,
+        "max_output_tokens": 2048,
+    }
+    model = genai.GenerativeModel(
+        'gemini-2.0-flash-exp',
+        generation_config=generation_config
+    )
+    print("✅ Gemini client initialized successfully with optimized config!")
 
 @app.route('/api/recipes/by-dish', methods=['POST'])
 def get_recipes_by_dish():
@@ -214,7 +224,7 @@ Please provide 3 variations or similar recipes for this dish. For each recipe, p
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
 - cooking_time: estimated cooking time (e.g., "30 minutes")
-- dietType: one of "veg", "non-veg", or "vegan"
+- dietType: IMPORTANT - Must be one of "veg", "non-veg", "vegan", or "egg". Use "egg" for dishes that contain eggs but no other meat/fish. Use "non-veg" only for dishes with meat/fish/seafood.
 - servings: number of servings (as a number, e.g., 4)
 - difficulty: one of "Easy", "Medium", or "Hard"
 - cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
@@ -303,7 +313,7 @@ Please suggest 3 delicious recipes that can be made using some or all of these i
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
 - cooking_time: estimated cooking time (e.g., "30 minutes")
-- dietType: one of "veg", "non-veg", or "vegan"
+- dietType: IMPORTANT - Must be one of "veg", "non-veg", "vegan", or "egg". Use "egg" for dishes that contain eggs but no other meat/fish. Use "non-veg" only for dishes with meat/fish/seafood.
 - servings: number of servings (as a number, e.g., 4)
 - difficulty: one of "Easy", "Medium", or "Hard"
 - cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
@@ -567,7 +577,7 @@ def get_trending_recipes():
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
 - cooking_time: estimated cooking time (e.g., "30 minutes")
-- dietType: one of "veg", "non-veg", or "vegan"
+- dietType: IMPORTANT - Must be one of "veg", "non-veg", "vegan", or "egg". Use "egg" for dishes that contain eggs but no other meat/fish. Use "non-veg" only for dishes with meat/fish/seafood.
 - servings: number of servings (as a number, e.g., 4)
 - difficulty: one of "Easy", "Medium", or "Hard"
 - cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
@@ -586,7 +596,7 @@ Return ONLY a valid JSON array of recipe objects, no additional text or markdown
 - ingredients: array of ingredients with quantities (e.g., "2 cups rice", "500g chicken")
 - steps: array of 3-5 quick preparation steps
 - cooking_time: estimated cooking time (e.g., "30 minutes")
-- dietType: one of "veg", "non-veg", or "vegan"
+- dietType: IMPORTANT - Must be one of "veg", "non-veg", "vegan", or "egg". Use "egg" for dishes that contain eggs but no other meat/fish. Use "non-veg" only for dishes with meat/fish/seafood.
 - servings: number of servings (as a number, e.g., 4)
 - difficulty: one of "Easy", "Medium", or "Hard"
 - cuisine: cuisine type (e.g., "Indian", "Italian", "Chinese", "American", "Thai", "Mexican", "Mediterranean", "Japanese", "French")
