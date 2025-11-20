@@ -209,8 +209,26 @@ export default function Home() {
   }, [showWhatsNew]);
 
   useEffect(() => {
-    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
+    if (chatEndRef.current && chatOpen) {
+      // Only scroll within the chat container, not the whole page
+      chatEndRef.current.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    }
+  }, [chatMessages, chatOpen]);
+
+  // Prevent body scroll when chat or modal is open
+  useEffect(() => {
+    if (chatOpen || selectedRecipe) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.height = '100vh';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.height = '';
+    };
+  }, [chatOpen, selectedRecipe]);
 
   // Favorites management
   const toggleFavorite = (recipeId: string) => {
@@ -1825,7 +1843,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="px-8 pb-8 overflow-y-auto space-y-10">
+                  <div className="px-8 pb-8 overflow-y-auto overflow-x-hidden space-y-10" style={{ WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain' }}>
                     <p className="text-gray-400 text-lg leading-relaxed max-w-3xl">
                       {selectedRecipe.description}
                     </p>
@@ -2136,7 +2154,7 @@ export default function Home() {
 
       {/* Chatbot Sidebar */}
       {chatOpen && (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-gray-950/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col border-l border-gray-800/70">
+        <div className="fixed inset-y-0 right-0 w-full sm:w-[420px] bg-gray-950/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col border-l border-gray-800/70 overflow-hidden">
           {/* Header */}
           <div className="px-5 py-4 bg-gray-900/70 border-b border-gray-800 relative">
             <div className="flex items-center justify-between mb-3">
