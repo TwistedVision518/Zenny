@@ -779,46 +779,6 @@ export default function Home() {
                 </Link>
               </div>
 
-              {/* Goals-based Auto Planner */}
-              <div className="mb-6 bg-gray-900/50 border border-gray-800 rounded-xl p-5">
-                <div className="flex flex-col md:flex-row gap-4 md:items-end">
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">Daily Calories</label>
-                      <input type="number" min={800} max={4000} value={goals.calories ?? ''}
-                        onChange={(e)=>setGoals(g=>({...g, calories: Number(e.target.value)||undefined}))}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">Protein (g)</label>
-                      <input type="number" min={0} value={goals.protein ?? ''}
-                        onChange={(e)=>setGoals(g=>({...g, protein: Number(e.target.value)||undefined}))}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">Carbs (g)</label>
-                      <input type="number" min={0} value={goals.carbs ?? ''}
-                        onChange={(e)=>setGoals(g=>({...g, carbs: Number(e.target.value)||undefined}))}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">Fats (g)</label>
-                      <input type="number" min={0} value={goals.fats ?? ''}
-                        onChange={(e)=>setGoals(g=>({...g, fats: Number(e.target.value)||undefined}))}
-                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={autoPlanToGoals}
-                      className="px-5 py-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-                    >
-                      ⚡ Auto‑Fill Week to Goals
-                    </button>
-                    <div className="text-xs text-gray-400">Uses your generated recipes</div>
-                  </div>
-                </div>
-              </div>
               <div className="flex items-center space-x-4">
                 <div className="hidden sm:flex items-center space-x-3">
                   <a
@@ -1349,6 +1309,47 @@ export default function Home() {
                     <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                   </button>
                 )}
+              </div>
+
+              {/* Goals-based Auto Planner */}
+              <div className="mb-6 bg-gray-900/50 border border-gray-800 rounded-xl p-5">
+                <div className="flex flex-col md:flex-row gap-4 md:items-end">
+                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Daily Calories</label>
+                      <input type="number" min={800} max={4000} value={goals.calories ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, calories: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Protein (g)</label>
+                      <input type="number" min={0} value={goals.protein ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, protein: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Carbs (g)</label>
+                      <input type="number" min={0} value={goals.carbs ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, carbs: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Fats (g)</label>
+                      <input type="number" min={0} value={goals.fats ?? ''}
+                        onChange={(e)=>setGoals(g=>({...g, fats: Number(e.target.value)||undefined}))}
+                        className="w-full px-3 py-2 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={autoPlanToGoals}
+                      className="px-5 py-3 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+                    >
+                      ⚡ Auto‑Fill Week to Goals
+                    </button>
+                    <div className="text-xs text-gray-400">Uses your generated recipes</div>
+                  </div>
+                </div>
               </div>
               
               {recipes.length === 0 && (
