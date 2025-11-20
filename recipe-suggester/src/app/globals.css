@@ -299,10 +299,13 @@
     scale: 1 !important;
   }
   
-  /* Prevent overscroll bounce */
-  html, body { 
-    overscroll-behavior-y: none !important;
-    overscroll-behavior-x: none !important;
+  /* Prevent overscroll bounce and horizontal scroll */
+  html { 
+    overscroll-behavior-y: none;
+    overflow-x: hidden;
+  }
+  
+  body {
     overflow-x: hidden;
   }
   

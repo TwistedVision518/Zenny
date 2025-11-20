@@ -215,19 +215,21 @@ export default function Home() {
     }
   }, [chatMessages, chatOpen]);
 
-  // Prevent body scroll when chat or modal is open
+  // Prevent body scroll when chat or modal is open (mobile only)
   useEffect(() => {
-    if (chatOpen || selectedRecipe) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.height = '100vh';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.height = '';
+    const isMobile = window.innerWidth <= 768;
+    if ((chatOpen || selectedRecipe) && isMobile) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      return () => {
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, scrollY);
+      };
     }
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.height = '';
-    };
   }, [chatOpen, selectedRecipe]);
 
   // Favorites management
