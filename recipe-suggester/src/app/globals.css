@@ -2,6 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /* Mobile-optimized classes */
+  .mobile-safe {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+  
+  .no-tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+  
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  @media (max-width: 768px) {
+    .mobile-no-scale {
+      transform: none !important;
+      scale: 1 !important;
+    }
+    
+    .mobile-no-transition {
+      transition: none !important;
+    }
+    
+    .mobile-no-blur {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+  }
+}
+
 @layer base {
   body {
     background: #000;
@@ -9,16 +46,31 @@
     /* Improve mobile performance */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Prevent overscroll bounce on mobile */
+    overscroll-behavior: none;
+    /* Hardware acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
   
   /* Optimize for mobile */
   * {
     -webkit-tap-highlight-color: transparent;
+    /* Prevent text selection on tap */
+    -webkit-touch-callout: none;
+    /* Better scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
   }
   
-  /* Smooth scrolling */
+  /* Smooth scrolling but not on iOS to avoid jank */
   html {
     scroll-behavior: smooth;
+  }
+  
+  @media (max-width: 768px) {
+    html {
+      scroll-behavior: auto;
+    }
   }
   
   /* Reduce motion for users who prefer it */
@@ -79,13 +131,19 @@
   /* Use GPU acceleration */
   will-change: background-position;
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* Disable heavy animations on mobile for better performance */
 @media (max-width: 768px) {
   .animated-gradient-bg {
-    animation: none;
-    background-size: 200% 200%;
+    animation: none !important;
+    background-size: 100% 100%;
+    background-position: center;
+    opacity: 0.06;
+    will-change: auto;
   }
 }
 
@@ -98,6 +156,8 @@
   overflow: hidden;
   z-index: 0;
   pointer-events: none;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .orb {
@@ -109,13 +169,18 @@
   /* Use GPU acceleration */
   will-change: transform;
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-/* Disable orb animations on mobile */
+/* Completely disable orbs on mobile to prevent jitter */
 @media (max-width: 768px) {
+  .animated-orbs {
+    display: none !important;
+  }
   .orb {
-    animation: none;
-    filter: blur(40px);
+    display: none !important;
   }
 }
 
@@ -203,20 +268,107 @@
 }
 
 /* MOBILE PERFORMANCE OPTIMIZATIONS */
-@media (max-width: 640px) {
-  /* Reduce heavy blur & shadows for smoother scrolling */
-  .animated-gradient-bg { opacity: 0.08; }
-  .animated-orbs .orb { filter: blur(60px); opacity: 0.22; }
-  header, footer { backdrop-filter: none !important; }
-  .chat-scroll { scrollbar-width: none; }
-  .chat-scroll::-webkit-scrollbar { display: none; }
-  /* Avoid layout shift on hover mobile by disabling translate effects */
-  .group:hover { transform: none !important; }
-  /* Smooth scrolling behavior tweaks */
-  html, body { overscroll-behavior-y: contain; }
+@media (max-width: 768px) {
+  /* Remove all heavy effects */
+  * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  /* Disable complex shadows and blurs */
+  header, footer, .modal, .card, button, select, input {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Simplify scrollbars */
+  .chat-scroll { 
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+  }
+  .chat-scroll::-webkit-scrollbar { 
+    display: none !important; 
+  }
+  
+  /* Disable hover effects that cause jitter */
+  *:hover {
+    transform: none !important;
+    scale: 1 !important;
+  }
+  
+  /* Prevent overscroll bounce */
+  html, body { 
+    overscroll-behavior-y: none !important;
+    overscroll-behavior-x: none !important;
+    position: relative;
+    overflow-x: hidden;
+  }
+  
+  /* Disable all animations for smoother experience */
+  *, *::before, *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.15s !important;
+  }
+  
+  /* Optimize button clicks */
+  button, a, select, input {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  /* Fix input zoom on iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
 
-/* Prefer GPU accel for animated elements */
-.animated-gradient-bg,
-.orb,
-.chat-msg-animate { will-change: transform, opacity; }
+/* Prefer GPU accel for animated elements on desktop only */
+@media (min-width: 769px) {
+  .animated-gradient-bg,
+  .orb,
+  .chat-msg-animate { 
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+}
+
+/* Additional mobile fixes for smooth scrolling */
+@media (max-width: 768px) {
+  /* Optimize recipe cards */
+  .recipe-card, [class*="bg-gray-900"] {
+    will-change: auto;
+    transform: none !important;
+  }
+  
+  /* Smooth modal animations */
+  .modal, [class*="modal"] {
+    animation: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+  
+  /* Prevent layout shifts */
+  img {
+    will-change: auto;
+  }
+  
+  /* Optimize grid layouts */
+  [class*="grid"] {
+    will-change: auto;
+  }
+  
+  /* Fix sticky elements */
+  [class*="sticky"] {
+    position: -webkit-sticky;
+    position: sticky;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+  
+  /* Improve input performance */
+  input:focus, textarea:focus, select:focus {
+    transform: none !important;
+  }
+}
