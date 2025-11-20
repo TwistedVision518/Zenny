@@ -4,6 +4,12 @@
 
 An advanced web application that transforms your available ingredients into delicious recipes, helps plan your meals, tracks nutrition, and provides personalized cooking advice. Built with Next.js, Python Flask, and Google Gemini 2.0.
 
+## 🌐 Live Demo
+
+**Try it now!** No installation required: [https://twistedzenny.netlify.app/](https://twistedzenny.netlify.app/)
+
+🎉 Anyone can use the live site for free - just visit the link and start discovering recipes!
+
 ![Zenny Logo](public/logodog.jpg)
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)](https://nextjs.org/)
